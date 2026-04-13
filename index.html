@@ -1,1 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>No-Limit Music Generator</title>
+  <style>
+    :root {
+      --bg: #0d0d1a;
+      --panel: #17172b;
+      --panel-2: #1f1f38;
+      --text: #eef1ff;
+      --muted: #98a0c5;
+      --accent: #b05cff;
+      --accent-2: #33e6ff;
+      --accent-3: #ff52cc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at 20% 0%, #1c1450 0%, var(--bg) 45%) fixed;
+      color: var(--text);
+      padding: 1rem;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+    }
+    .card {
+      background: linear-gradient(160deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(176, 92, 255, 0.25);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    h1 {
+      margin: 0 0 0.6rem;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      letter-spacing: 0.4px;
+    }
+    .subtitle { color: var(--muted); margin: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.9rem;
+      margin-top: 0.8rem;
+    }
+    label { display: block; font-size: 0.88rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input, select, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(150,160,230,0.25);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 0.65rem 0.7rem;
+      font-size: 0.95rem;
+    }
+    input[type="range"] { padding: 0; }
+    button {
+      border: none;
+      background: linear-gradient(90deg, var(--accent), var(--accent-3));
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .08s ease, opacity .2s;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .transport {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(110px, 1fr));
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+    }
+    .ghost {
+      background: transparent;
+      border: 1px solid rgba(95, 210, 255, 0.5);
+      color: var(--accent-2);
+    }
+    .status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+    .pill {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 0.5rem 0.8rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .pill b { color: var(--text); }
+    .progress-wrap {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin-top: 0.8rem;
+    }
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-3));
+      box-shadow: 0 0 12px rgba(176, 92, 255, 0.55);
+      transition: width 0.12s linear;
+    }
+    .levels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.7rem;
+      margin-top: 0.85rem;
+    }
+    .level {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 0.7rem;
+    }
+    canvas {
+      width: 100%;
+      height: 190px;
+      background: linear-gradient(180deg, rgba(51,230,255,0.09), rgba(176,92,255,0.05));
+      border: 1px solid rgba(51,230,255,0.28);
+      border-radius: 14px;
+      margin-top: 0.7rem;
+      display: block;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #bde6ff; }
+    .small { font-size: 0.86rem; color: var(--muted); }
+    @media (max-width: 760px) {
+      .transport { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="card">
+      <h1>🎵 No-Limit Browser Music Generator</h1>
+      <p class="subtitle">Fully client-side Web Audio generation (no API key, no backend). Generate, play, visualize, pause/resume, and export WAV.</p>
 
+      <div class="grid">
+        <div>
+          <label for="genre">Genre / Style</label>
+          <select id="genre">
+            <option>Lo-Fi</option>
+            <option>Electronic</option>
+            <option>Ambient</option>
+            <option>Rock</option>
+            <option>Jazz</option>
+            <option>Classical</option>
+            <option>Hip-Hop</option>
+            <option>Pop</option>
+          </select>
+        </div>
+        <div>
+          <label for="bpm">BPM <span id="bpmOut">100</span></label>
+          <input id="bpm" type="range" min="40" max="220" value="100" />
+        </div>
+        <div>
+          <label for="key">Key</label>
+          <select id="key">
+            <option>C</option><option>D</option><option>E</option><option>F</option>
+            <option>G</option><option>A</option><option>B</option>
+          </select>
+        </div>
+        <div>
+          <label for="scale">Scale</label>
+          <select id="scale">
+            <option>Major</option>
+            <option>Minor</option>
+            <option>Pentatonic</option>
+            <option>Blues</option>
+            <option>Dorian</option>
+            <option>Mixolydian</option>
+            <option>Phrygian</option>
+          </select>
+        </div>
+        <div>
+          <label for="minutes">Song Duration (minutes, 1–120)</label>
+          <input id="minutes" type="number" min="1" max="120" value="10" step="1" />
+        </div>
+      </div>
+
+      <div class="transport">
+        <button id="generateBtn">Generate + Play</button>
+        <button id="pauseBtn" class="ghost" disabled>Pause</button>
+        <button id="resumeBtn" class="ghost" disabled>Resume</button>
+        <button id="stopBtn" class="ghost" disabled>Stop</button>
+        <button id="exportBtn" class="ghost">Export WAV</button>
+      </div>
+
+      <div class="levels">
+        <div class="level"><label>Melody <span id="melodyOut">80%</span></label><input id="melodyVol" type="range" min="0" max="1" step="0.01" value="0.8"/></div>
+        <div class="level"><label>Bass <span id="bassOut">75%</span></label><input id="bassVol" type="range" min="0" max="1" step="0.01" value="0.75"/></div>
+        <div class="level"><label>Drums <span id="drumsOut">85%</span></label><input id="drumsVol" type="range" min="0" max="1" step="0.01" value="0.85"/></div>
+        <div class="level"><label>Pads <span id="padsOut">70%</span></label><input id="padsVol" type="range" min="0" max="1" step="0.01" value="0.7"/></div>
+      </div>
+
+      <div class="status">
+        <div class="pill">Section: <b id="section">Idle</b></div>
+        <div class="pill">Progress: <b id="time">0:00 / 0:00</b></div>
+        <div class="pill">Chords: <b class="mono" id="chords">—</b></div>
+      </div>
+      <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+      <p class="small" id="exportStatus">Export status: idle</p>
+      <canvas id="viz" width="1000" height="220"></canvas>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const scaleIntervals = {
+      Major: [0, 2, 4, 5, 7, 9, 11],
+      Minor: [0, 2, 3, 5, 7, 8, 10],
+      Pentatonic: [0, 3, 5, 7, 10],
+      Blues: [0, 3, 5, 6, 7, 10],
+      Dorian: [0, 2, 3, 5, 7, 9, 10],
+      Mixolydian: [0, 2, 4, 5, 7, 9, 10],
+      Phrygian: [0, 1, 3, 5, 7, 8, 10],
+    };
+
+    const keySemitone = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+    const genreProfiles = {
+      'Lo-Fi': { progressions: [[1, 6, 4, 5], [2, 5, 1, 6]], melodyDensity: 0.45, hatDensity: 0.65, delay: 0.18 },
+      Electronic: { progressions: [[1, 5, 6, 4], [6, 4, 1, 5]], melodyDensity: 0.6, hatDensity: 0.85, delay: 0.28 },
+      Ambient: { progressions: [[1, 4, 6, 5], [1, 5, 4, 6]], melodyDensity: 0.25, hatDensity: 0.35, delay: 0.4 },
+      Rock: { progressions: [[1, 4, 5, 1], [1, 5, 4, 1]], melodyDensity: 0.5, hatDensity: 0.6, delay: 0.1 },
+      Jazz: { progressions: [[2, 5, 1, 6], [1, 6, 2, 5]], melodyDensity: 0.75, hatDensity: 0.7, delay: 0.22 },
+      Classical: { progressions: [[1, 5, 6, 3, 4, 1, 2, 5], [1, 4, 2, 5]], melodyDensity: 0.5, hatDensity: 0.3, delay: 0.16 },
+      'Hip-Hop': { progressions: [[1, 4, 1, 5], [6, 5, 4, 5]], melodyDensity: 0.4, hatDensity: 0.95, delay: 0.12 },
+      Pop: { progressions: [[1, 5, 6, 4], [1, 4, 6, 5]], melodyDensity: 0.62, hatDensity: 0.75, delay: 0.2 }
+    };
+
+    const roman = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii'];
+
+    const state = {
+      ctx: null,
+      song: null,
+      transport: null,
+      graph: null,
+      scheduleId: null,
+      rafId: null,
+      isPlaying: false,
+      isPaused: false,
+      noiseCache: new WeakMap(),
+    };
+
+    function mulberry32(seed) {
+      return function() {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+    function midiToFreq(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
+    function formatTime(seconds) {
+      const s = Math.max(0, Math.floor(seconds));
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    }
+
+    function getControls() {
+      return {
+        genre: $('genre').value,
+        bpm: Number($('bpm').value),
+        key: $('key').value,
+        scale: $('scale').value,
+        minutes: clamp(Number($('minutes').value) || 10, 1, 120),
+        levels: {
+          melody: Number($('melodyVol').value),
+          bass: Number($('bassVol').value),
+          drums: Number($('drumsVol').value),
+          pads: Number($('padsVol').value),
+        }
+      };
+    }
+
+    function scaleMidi(root, scale, degree, octave = 4) {
+      const ints = scaleIntervals[scale] || scaleIntervals.Major;
+      const idx = (degree - 1) % ints.length;
+      const wraps = Math.floor((degree - 1) / ints.length);
+      return root + ints[idx] + (octave + wraps) * 12;
+    }
+
+    function choose(rng, arr) { return arr[Math.floor(rng() * arr.length) % arr.length]; }
+
+    function buildSong(cfg) {
+      const profile = genreProfiles[cfg.genre] || genreProfiles.Pop;
+      const root = keySemitone[cfg.key] ?? 0;
+      const beatSec = 60 / cfg.bpm;
+      const barSec = beatSec * 4;
+      const durationSec = cfg.minutes * 60;
+      const totalBars = Math.max(8, Math.floor(durationSec / barSec));
+
+      const sectionsBase = [
+        ['Intro', 0.09], ['Verse', 0.26], ['Chorus', 0.2],
+        ['Verse', 0.18], ['Chorus', 0.15], ['Bridge', 0.07], ['Outro', 0.05]
+      ];
+      let barsRemaining = totalBars;
+      const sections = [];
+      for (let i = 0; i < sectionsBase.length; i++) {
+        const [name, ratio] = sectionsBase[i];
+        const minBars = name === 'Bridge' || name === 'Outro' ? 2 : 3;
+        const bars = i === sectionsBase.length - 1 ? barsRemaining : Math.max(minBars, Math.floor(totalBars * ratio));
+        barsRemaining -= bars;
+        sections.push({ name, bars });
+      }
+      if (barsRemaining > 0) sections[sections.length - 1].bars += barsRemaining;
+
+      const seed = Math.floor(Math.random() * 1e9);
+      const rng = mulberry32(seed);
+      const progression = choose(rng, profile.progressions);
+
+      let barCursor = 0;
+      for (const s of sections) {
+        s.startBar = barCursor;
+        s.endBar = barCursor + s.bars;
+        s.startTime = s.startBar * barSec;
+        s.endTime = s.endBar * barSec;
+        barCursor = s.endBar;
+      }
+
+      const events = [];
+      for (let bar = 0; bar < totalBars; bar++) {
+        const sec = sections.find((s) => bar >= s.startBar && bar < s.endBar) || sections[0];
+        const t = bar * barSec;
+        const deg = progression[bar % progression.length];
+        const triadDegrees = [deg, deg + 2, deg + 4];
+        const chordFreqs = triadDegrees.map((d) => midiToFreq(scaleMidi(root, cfg.scale, d, 3)));
+        const bassFreq = midiToFreq(scaleMidi(root, cfg.scale, deg, 1));
+
+        events.push({ type: 'pad', time: t, duration: barSec * 1.05, freqs: chordFreqs, velocity: 0.22, section: sec.name });
+
+        for (let beat = 0; beat < 4; beat++) {
+          const bt = t + beat * beatSec;
+          if (beat === 0 || rng() < 0.55 || sec.name === 'Chorus') {
+            events.push({ type: 'bass', time: bt, duration: beatSec * 0.95, freq: bassFreq * (beat === 2 && rng() < 0.3 ? 2 : 1), velocity: 0.45, section: sec.name });
+          }
+
+          const isKick = beat === 0 || (cfg.genre === 'Electronic' && beat === 2) || (cfg.genre === 'Hip-Hop' && beat !== 1 && rng() < 0.4);
+          if (isKick || (sec.name === 'Chorus' && rng() < 0.2)) events.push({ type: 'kick', time: bt, velocity: 0.9, section: sec.name });
+          if (beat === 1 || beat === 3 || (cfg.genre === 'Jazz' && rng() < 0.25)) events.push({ type: 'snare', time: bt, velocity: 0.62, section: sec.name });
+
+          for (let h = 0; h < 2; h++) {
+            const ht = bt + h * beatSec * 0.5;
+            if (rng() < profile.hatDensity) events.push({ type: 'hat', time: ht, velocity: 0.25 + rng() * 0.25, section: sec.name });
+          }
+        }
+
+        const baseDensity = profile.melodyDensity + (sec.name === 'Chorus' ? 0.18 : sec.name === 'Bridge' ? -0.1 : 0);
+        const steps = [2, 4, 6, 8];
+        const notesThisBar = choose(rng, steps.filter((n) => rng() < baseDensity + n * 0.02)) || 3;
+        const stepDur = barSec / notesThisBar;
+
+        for (let n = 0; n < notesThisBar; n++) {
+          if (rng() < 0.14 && sec.name !== 'Chorus') continue;
+          const mt = t + n * stepDur;
+          const useChordTone = rng() < 0.65;
+          const degree = useChordTone ? choose(rng, triadDegrees) : (deg + Math.floor(rng() * 7));
+          const midi = scaleMidi(root, cfg.scale, degree, 4 + (rng() < 0.23 ? 1 : 0));
+          events.push({ type: 'melody', time: mt, duration: stepDur * (0.78 + rng() * 0.18), freq: midiToFreq(midi), velocity: 0.25 + rng() * 0.3, section: sec.name });
+        }
+      }
+
+      sections.forEach((s, i) => {
+        const amount = s.name === 'Chorus' ? 7500 : s.name === 'Bridge' ? 1500 : 4200;
+        events.push({ type: 'sweep', time: s.startTime, duration: Math.max(1, (s.endTime - s.startTime) * 0.9), targetFreq: amount, section: s.name, order: i });
+      });
+
+      events.sort((a, b) => a.time - b.time || (a.order || 0) - (b.order || 0));
+
+      return {
+        cfg,
+        seed,
+        beatSec,
+        barSec,
+        durationSec,
+        totalBars,
+        sections,
+        progression,
+        progressionText: progression.map((d) => roman[(d - 1 + 7) % 7]).join(' - '),
+        events,
+      };
+    }
+
+    function makeImpulse(context, seconds = 2.1, decay = 2.7) {
+      const rate = context.sampleRate;
+      const len = Math.floor(rate * seconds);
+      const ir = context.createBuffer(2, len, rate);
+      for (let c = 0; c < 2; c++) {
+        const data = ir.getChannelData(c);
+        for (let i = 0; i < len; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+        }
+      }
+      return ir;
+    }
+
+    function getNoiseBuffer(context) {
+      if (state.noiseCache.has(context)) return state.noiseCache.get(context);
+      const len = context.sampleRate * 1;
+      const b = context.createBuffer(1, len, context.sampleRate);
+      const d = b.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      state.noiseCache.set(context, b);
+      return b;
+    }
+
+    function createGraph(context, levels, withAnalyser = true, delayAmount = 0.2) {
+      const melody = context.createGain();
+      const bass = context.createGain();
+      const drums = context.createGain();
+      const pads = context.createGain();
+      melody.gain.value = levels.melody;
+      bass.gain.value = levels.bass;
+      drums.gain.value = levels.drums;
+      pads.gain.value = levels.pads;
+
+      const master = context.createGain();
+      master.gain.value = 0.9;
+      const compressor = context.createDynamicsCompressor();
+      compressor.threshold.value = -20;
+      compressor.knee.value = 20;
+      compressor.ratio.value = 3;
+      const filter = context.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 3600;
+      filter.Q.value = 0.6;
+
+      const delay = context.createDelay(1.0);
+      delay.delayTime.value = 0.24;
+      const delayFb = context.createGain();
+      delayFb.gain.value = 0.34;
+      delay.connect(delayFb);
+      delayFb.connect(delay);
+
+      const delaySend = context.createGain();
+      delaySend.gain.value = delayAmount;
+      const reverb = context.createConvolver();
+      reverb.buffer = makeImpulse(context);
+      const reverbSend = context.createGain();
+      reverbSend.gain.value = 0.28;
+
+      [melody, bass, drums, pads].forEach((node) => {
+        node.connect(master);
+        node.connect(delaySend);
+        node.connect(reverbSend);
+      });
+
+      delaySend.connect(delay);
+      delay.connect(master);
+      reverbSend.connect(reverb);
+      reverb.connect(master);
+
+      let analyser = null;
+      if (withAnalyser) {
+        analyser = context.createAnalyser();
+        analyser.fftSize = 2048;
+        master.connect(compressor);
+        compressor.connect(filter);
+        filter.connect(analyser);
+        analyser.connect(context.destination);
+      } else {
+        master.connect(compressor);
+        compressor.connect(filter);
+        filter.connect(context.destination);
+      }
+
+      return { melody, bass, drums, pads, master, compressor, filter, analyser };
+    }
+
+    function env(g, t, a, d, peak = 1, end = 0.0001) {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t + Math.max(a, 0.001));
+      g.gain.exponentialRampToValueAtTime(Math.max(end, 0.0001), t + Math.max(a + d, 0.01));
+    }
+
+    function playMelody(context, out, when, duration, freq, vel) {
+      if (duration <= 0) return;
+      const osc = context.createOscillator();
+      const g = context.createGain();
+      const vibr = context.createOscillator();
+      const vibrGain = context.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, when);
+      vibr.frequency.value = 5.5;
+      vibrGain.gain.value = 2.5;
+      vibr.connect(vibrGain);
+      vibrGain.connect(osc.frequency);
+      env(g, when, 0.015, duration * 0.95, vel, 0.0002);
+      osc.connect(g); g.connect(out);
+      osc.start(when); vibr.start(when);
+      osc.stop(when + duration + 0.05); vibr.stop(when + duration + 0.05);
+    }
+
+    function playBass(context, out, when, duration, freq, vel) {
+      if (duration <= 0) return;
+      const osc = context.createOscillator();
+      const sub = context.createOscillator();
+      const mix = context.createGain();
+      const lp = context.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 260;
+      osc.type = 'sawtooth';
+      sub.type = 'sine';
+      osc.frequency.setValueAtTime(freq, when);
+      sub.frequency.setValueAtTime(freq / 2, when);
+      env(mix, when, 0.01, duration * 0.9, vel, 0.0003);
+      osc.connect(lp); sub.connect(lp);
+      lp.connect(mix); mix.connect(out);
+      osc.start(when); sub.start(when);
+      osc.stop(when + duration + 0.05); sub.stop(when + duration + 0.05);
+    }
+
+    function playPad(context, out, when, duration, freqs, vel) {
+      if (duration <= 0) return;
+      freqs.forEach((freq, i) => {
+        const o = context.createOscillator();
+        const g = context.createGain();
+        const filter = context.createBiquadFilter();
+        o.type = i % 2 ? 'triangle' : 'sawtooth';
+        o.frequency.setValueAtTime(freq, when);
+        filter.type = 'lowpass';
+        filter.frequency.value = 1500;
+        filter.Q.value = 0.4;
+        env(g, when, 0.12, Math.max(0.2, duration * 0.88), vel / (freqs.length + 0.3), 0.0001);
+        o.connect(filter); filter.connect(g); g.connect(out);
+        o.start(when);
+        o.stop(when + duration + 0.2);
+      });
+    }
+
+    function playKick(context, out, when, vel) {
+      const osc = context.createOscillator();
+      const g = context.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, when);
+      osc.frequency.exponentialRampToValueAtTime(42, when + 0.12);
+      env(g, when, 0.001, 0.16, vel, 0.0001);
+      osc.connect(g); g.connect(out);
+      osc.start(when); osc.stop(when + 0.18);
+    }
+
+    function playSnare(context, out, when, vel) {
+      const noise = context.createBufferSource();
+      noise.buffer = getNoiseBuffer(context);
+      const hp = context.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1600;
+      const g = context.createGain();
+      env(g, when, 0.001, 0.12, vel, 0.0001);
+      noise.connect(hp); hp.connect(g); g.connect(out);
+      noise.start(when); noise.stop(when + 0.14);
+
+      const tone = context.createOscillator();
+      const tg = context.createGain();
+      tone.type = 'triangle';
+      tone.frequency.value = 180;
+      env(tg, when, 0.001, 0.08, vel * 0.32, 0.0001);
+      tone.connect(tg); tg.connect(out);
+      tone.start(when); tone.stop(when + 0.1);
+    }
+
+    function playHat(context, out, when, vel) {
+      const noise = context.createBufferSource();
+      noise.buffer = getNoiseBuffer(context);
+      const hp = context.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 7000;
+      const g = context.createGain();
+      env(g, when, 0.001, 0.045, vel, 0.0001);
+      noise.connect(hp); hp.connect(g); g.connect(out);
+      noise.start(when); noise.stop(when + 0.055);
+    }
+
+    function scheduleEvent(context, graph, event, when, chunkCutSec = null) {
+      if (event.type === 'melody') return playMelody(context, graph.melody, when, chunkCutSec ?? event.duration, event.freq, event.velocity);
+      if (event.type === 'bass') return playBass(context, graph.bass, when, chunkCutSec ?? event.duration, event.freq, event.velocity);
+      if (event.type === 'pad') return playPad(context, graph.pads, when, chunkCutSec ?? event.duration, event.freqs, event.velocity);
+      if (event.type === 'kick') return playKick(context, graph.drums, when, event.velocity);
+      if (event.type === 'snare') return playSnare(context, graph.drums, when, event.velocity);
+      if (event.type === 'hat') return playHat(context, graph.drums, when, event.velocity);
+      if (event.type === 'sweep') {
+        const end = when + Math.max(0.4, chunkCutSec ?? event.duration);
+        graph.filter.frequency.cancelScheduledValues(when);
+        graph.filter.frequency.linearRampToValueAtTime(event.targetFreq, end);
+      }
+    }
+
+    function updateButtonStates() {
+      $('pauseBtn').disabled = !state.isPlaying || state.isPaused;
+      $('resumeBtn').disabled = !state.isPlaying || !state.isPaused;
+      $('stopBtn').disabled = !state.isPlaying;
+      $('generateBtn').disabled = false;
+    }
+
+    function startSong(song, levels) {
+      stopSong(false);
+      state.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      state.graph = createGraph(state.ctx, levels, true, genreProfiles[song.cfg.genre]?.delay ?? 0.2);
+      state.song = song;
+      $('chords').textContent = song.progressionText;
+      $('section').textContent = 'Intro';
+
+      state.transport = {
+        startTime: state.ctx.currentTime + 0.1,
+        nextIndex: 0,
+        lookAhead: 0.5,
+        scheduleWindow: 0.14,
+      };
+      state.isPlaying = true;
+      state.isPaused = false;
+
+      state.scheduleId = setInterval(() => {
+        if (!state.ctx || !state.transport || state.isPaused) return;
+        const now = state.ctx.currentTime;
+        const target = now + state.transport.lookAhead;
+        const events = state.song.events;
+        while (state.transport.nextIndex < events.length) {
+          const e = events[state.transport.nextIndex];
+          const when = state.transport.startTime + e.time;
+          if (when > target) break;
+          if (when >= now - 0.02) scheduleEvent(state.ctx, state.graph, e, when);
+          state.transport.nextIndex++;
+        }
+      }, state.transport.scheduleWindow * 1000);
+
+      drawVisualizer();
+      updateProgressLoop();
+      updateButtonStates();
+    }
+
+    function getCurrentSection(song, elapsed) {
+      return song.sections.find((s) => elapsed >= s.startTime && elapsed < s.endTime)?.name || 'Outro';
+    }
+
+    function updateProgressLoop() {
+      cancelAnimationFrame(state.rafId);
+      const tick = () => {
+        if (!state.ctx || !state.song || !state.transport || !state.isPlaying) return;
+        const elapsed = clamp(state.ctx.currentTime - state.transport.startTime, 0, state.song.durationSec);
+        $('progress').style.width = `${(elapsed / state.song.durationSec) * 100}%`;
+        $('time').textContent = `${formatTime(elapsed)} / ${formatTime(state.song.durationSec)}`;
+        $('section').textContent = getCurrentSection(state.song, elapsed);
+
+        if (elapsed >= state.song.durationSec - 0.03) {
+          stopSong(true);
+          $('section').textContent = 'Completed';
+          return;
+        }
+        state.rafId = requestAnimationFrame(tick);
+      };
+      state.rafId = requestAnimationFrame(tick);
+    }
+
+    function stopSong(resetUI = true) {
+      if (state.scheduleId) clearInterval(state.scheduleId);
+      if (state.rafId) cancelAnimationFrame(state.rafId);
+      state.scheduleId = null;
+      state.rafId = null;
+      if (state.ctx) state.ctx.close();
+      state.ctx = null;
+      state.graph = null;
+      state.transport = null;
+      state.isPlaying = false;
+      state.isPaused = false;
+      if (resetUI) {
+        $('progress').style.width = '0%';
+        $('time').textContent = '0:00 / 0:00';
+      }
+      updateButtonStates();
+    }
+
+    async function pauseSong() {
+      if (!state.ctx || state.isPaused || !state.isPlaying) return;
+      await state.ctx.suspend();
+      state.isPaused = true;
+      updateButtonStates();
+    }
+
+    async function resumeSong() {
+      if (!state.ctx || !state.isPaused || !state.isPlaying) return;
+      await state.ctx.resume();
+      state.isPaused = false;
+      updateButtonStates();
+    }
+
+    function drawVisualizer() {
+      const canvas = $('viz');
+      const ctx2d = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const draw = () => {
+        if (!state.graph?.analyser || !state.isPlaying) return;
+        const analyser = state.graph.analyser;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+
+        ctx2d.clearRect(0, 0, width, height);
+        const grad = ctx2d.createLinearGradient(0, 0, width, 0);
+        grad.addColorStop(0, '#33e6ff');
+        grad.addColorStop(0.5, '#b05cff');
+        grad.addColorStop(1, '#ff52cc');
+        ctx2d.fillStyle = 'rgba(9,14,28,0.32)';
+        ctx2d.fillRect(0, 0, width, height);
+
+        const bars = 90;
+        const step = Math.floor(data.length / bars);
+        const bw = width / bars;
+        for (let i = 0; i < bars; i++) {
+          const v = data[i * step] / 255;
+          const h = Math.max(2, v * (height - 16));
+          ctx2d.fillStyle = grad;
+          ctx2d.fillRect(i * bw + 1, height - h, bw - 2, h);
+        }
+
+        const wave = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(wave);
+        ctx2d.strokeStyle = 'rgba(189,230,255,0.85)';
+        ctx2d.lineWidth = 1.2;
+        ctx2d.beginPath();
+        for (let i = 0; i < wave.length; i++) {
+          const x = (i / (wave.length - 1)) * width;
+          const y = (wave[i] / 255) * height;
+          if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+        }
+        ctx2d.stroke();
+
+        requestAnimationFrame(draw);
+      };
+      requestAnimationFrame(draw);
+    }
+
+    function setLevelOutputs() {
+      ['melody', 'bass', 'drums', 'pads'].forEach((name) => {
+        const v = Number($(`${name}Vol`).value);
+        $(`${name}Out`).textContent = `${Math.round(v * 100)}%`;
+      });
+      $('bpmOut').textContent = $('bpm').value;
+      if (state.graph) {
+        state.graph.melody.gain.value = Number($('melodyVol').value);
+        state.graph.bass.gain.value = Number($('bassVol').value);
+        state.graph.drums.gain.value = Number($('drumsVol').value);
+        state.graph.pads.gain.value = Number($('padsVol').value);
+      }
+    }
+
+    function pcm16FromFloat(floatData) {
+      const out = new Uint8Array(floatData.length * 2);
+      const view = new DataView(out.buffer);
+      for (let i = 0; i < floatData.length; i++) {
+        const s = Math.max(-1, Math.min(1, floatData[i]));
+        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+      return out;
+    }
+
+    function wavHeader(totalSamples, sampleRate, channels = 1, bitsPerSample = 16) {
+      const blockAlign = channels * bitsPerSample / 8;
+      const byteRate = sampleRate * blockAlign;
+      const dataSize = totalSamples * blockAlign;
+      const buffer = new ArrayBuffer(44);
+      const v = new DataView(buffer);
+      const write = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+      write(0, 'RIFF'); v.setUint32(4, 36 + dataSize, true); write(8, 'WAVE');
+      write(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+      v.setUint16(22, channels, true); v.setUint32(24, sampleRate, true);
+      v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true);
+      v.setUint16(34, bitsPerSample, true); write(36, 'data'); v.setUint32(40, dataSize, true);
+      return new Uint8Array(buffer);
+    }
+
+    async function renderWav(song) {
+      const sampleRate = 22050;
+      const chunkSeconds = 45;
+      const totalSamples = Math.ceil(song.durationSec * sampleRate);
+      const chunks = [];
+
+      for (let start = 0; start < song.durationSec; start += chunkSeconds) {
+        const duration = Math.min(chunkSeconds, song.durationSec - start);
+        const frames = Math.ceil(duration * sampleRate);
+        const offline = new OfflineAudioContext(1, frames, sampleRate);
+        const graph = createGraph(offline, { melody: 0.8, bass: 0.75, drums: 0.85, pads: 0.7 }, false, genreProfiles[song.cfg.genre]?.delay ?? 0.2);
+
+        const end = start + duration;
+        for (const e of song.events) {
+          const eventEnd = e.time + (e.duration || 0.12);
+          if (e.time >= end || eventEnd <= start) continue;
+          const localStart = Math.max(0, e.time - start);
+          const remain = Math.max(0, Math.min(end, eventEnd) - Math.max(start, e.time));
+          scheduleEvent(offline, graph, e, localStart, e.duration ? remain : null);
+        }
+
+        const rendered = await offline.startRendering();
+        chunks.push(pcm16FromFloat(rendered.getChannelData(0)));
+        $('exportStatus').textContent = `Export status: rendering ${formatTime(Math.min(end, song.durationSec))} / ${formatTime(song.durationSec)}...`;
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
+      const blob = new Blob([wavHeader(totalSamples, sampleRate), ...chunks], { type: 'audio/wav' });
+      return blob;
+    }
+
+    async function exportSong() {
+      let song = state.song;
+      if (!song) song = buildSong(getControls());
+      $('exportBtn').disabled = true;
+      $('exportStatus').textContent = 'Export status: preparing offline render...';
+      try {
+        const blob = await renderWav(song);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `music-gen-${song.cfg.genre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        $('exportStatus').textContent = `Export status: done (${(blob.size / (1024 * 1024)).toFixed(1)} MB)`;
+      } catch (err) {
+        $('exportStatus').textContent = `Export status: failed (${err?.message || 'unknown error'})`;
+      } finally {
+        $('exportBtn').disabled = false;
+      }
+    }
+
+    $('generateBtn').addEventListener('click', () => {
+      const cfg = getControls();
+      const song = buildSong(cfg);
+      $('section').textContent = 'Starting...';
+      $('time').textContent = `0:00 / ${formatTime(song.durationSec)}`;
+      $('chords').textContent = song.progressionText;
+      startSong(song, cfg.levels);
+    });
+
+    $('pauseBtn').addEventListener('click', pauseSong);
+    $('resumeBtn').addEventListener('click', resumeSong);
+    $('stopBtn').addEventListener('click', () => { stopSong(); $('section').textContent = 'Stopped'; });
+    $('exportBtn').addEventListener('click', exportSong);
+
+    ['bpm', 'melodyVol', 'bassVol', 'drumsVol', 'padsVol'].forEach((id) => $(id).addEventListener('input', setLevelOutputs));
+    setLevelOutputs();
+    updateButtonStates();
+  </script>
+</body>
+</html>
