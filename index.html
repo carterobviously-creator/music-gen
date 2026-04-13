@@ -179,6 +179,9 @@
   <script>
     const $ = (id) => document.getElementById(id);
     const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+    const FX_FILTER_CUTOFF_HZ = 9000;
+    const DRUM_DECAY_RATE = 8;
+    const DEFAULT_NOTE_DURATION = 0.2;
     const CHECKPOINTS = {
       melody: 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn',
       drums: 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/drum_kit_rnn',
@@ -219,6 +222,14 @@
       retryFn: null
     };
 
+    function midiToFreq(pitch) {
+      return 440 * Math.pow(2, ((pitch || 60) - 69) / 12);
+    }
+    state.liveLevels = {
+      melody: Number($('melodyVol').value),
+      drums: Number($('drumsVol').value)
+    };
+
     function updateSliderOut(id, outId) {
       $(outId).textContent = $(id).value;
     }
@@ -228,6 +239,8 @@
         $(a).addEventListener('input', () => updateSliderOut(a, b));
         updateSliderOut(a, b);
       });
+    $('melodyVol').addEventListener('input', () => { state.liveLevels.melody = Number($('melodyVol').value); });
+    $('drumsVol').addEventListener('input', () => { state.liveLevels.drums = Number($('drumsVol').value); });
 
     function renderChips() {
       const el = $('chips');
@@ -243,7 +256,7 @@
 
     function parsePrompt(text) {
       const lower = (text || '').toLowerCase();
-      const bpmMatch = lower.match(/(\d{2,3})(?:\s*)(?:bpm|tempo)/i);
+      const bpmMatch = lower.match(/(\d{1,3})(?:\s*)(?:bpm|tempo)/i);
       let bpm = bpmMatch ? clamp(Number(bpmMatch[1]), 40, 220) : null;
 
       let minutes = null;
@@ -256,7 +269,8 @@
       if (!profile) profile = { genre: 'Hybrid', mood: 'Balanced', temp: 1.0, program: 0 };
 
       if (bpm == null) {
-        bpm = profile.genre === 'Electronic' ? 128 : profile.genre === 'Lo-Fi' ? 82 : profile.genre === 'Ambient' ? 72 : 100;
+        const defaultBpmByGenre = { Electronic: 128, 'Lo-Fi': 82, Ambient: 72 };
+        bpm = defaultBpmByGenre[profile.genre] || 100;
       }
       if (minutes == null) minutes = 10;
 
@@ -396,7 +410,8 @@
     async function generateSequence(parsed) {
       const { melodyRnn, drumsRnn, vae } = await ensureModels();
       const stepsPerBar = 16;
-      const targetSteps = Math.max(stepsPerBar * 8, Math.ceil(parsed.minutes * parsed.bpm / 60 * 16));
+      // Convert minutes -> beats, then beats -> quantized steps (4 quantized steps per beat).
+      const targetSteps = Math.max(stepsPerBar * 8, Math.ceil(parsed.minutes * parsed.bpm * (stepsPerBar / 4)));
       const chunkBars = 8;
       const chunkSteps = chunkBars * stepsPerBar;
 
@@ -404,7 +419,10 @@
       let melody = makeSeed(parsed.program);
 
       const drumSeed = makeDrumSeed();
-      const drumPromise = drumsRnn.continueSequence(drumSeed, 64, Math.max(0.7, parsed.temperature - 0.1));
+      // Add 64 continuation steps (4 more bars; 5 bars total with seed) for steadier rhythmic patterns.
+      const drumContinuationSteps = 64;
+      const drumTemperature = Math.max(0.7, parsed.temperature - 0.1);
+      const drumPromise = drumsRnn.continueSequence(drumSeed, drumContinuationSteps, drumTemperature);
       const vaePromise = (async () => {
         const samples = await vae.sample(2, parsed.temperature);
         const blended = await vae.interpolate(samples, 5);
@@ -427,7 +445,7 @@
       const drums = repeatToLength(drumPattern, targetSteps);
 
       let vaeLayer = null;
-      if (vaePhrase && vaePhrase.notes?.length) {
+      if (vaePhrase && vaePhrase.notes.length) {
         const phrase = {
           ticksPerQuarter: 220,
           quantizationInfo: { stepsPerQuarter: 4 },
@@ -449,7 +467,7 @@
       return unquantized;
     }
 
-    function createImpulseBuffer(ctx, seconds = 1.6) {
+    function createReverbImpulseBuffer(ctx, seconds = 1.6) {
       const len = Math.floor(ctx.sampleRate * seconds);
       const buffer = ctx.createBuffer(2, len, ctx.sampleRate);
       for (let c = 0; c < 2; c++) {
@@ -469,14 +487,14 @@
       const dry = ctx.createGain();
       const wet = ctx.createGain();
       const convolver = ctx.createConvolver();
-      convolver.buffer = createImpulseBuffer(ctx, 1.8);
+      convolver.buffer = createReverbImpulseBuffer(ctx, 1.8);
       const delay = ctx.createDelay(1.0);
       delay.delayTime.value = 0.25;
       const feedback = ctx.createGain();
       feedback.gain.value = 0.25;
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.value = 9000;
+      filter.frequency.value = FX_FILTER_CUTOFF_HZ;
       const comp = ctx.createDynamicsCompressor();
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 1024;
@@ -509,16 +527,18 @@
     function triggerFxLayer(note) {
       if (!state.fxCtx || !state.fx || !note) return;
       const t = state.fxCtx.currentTime;
-      const dur = clamp((note.endTime || note.startTime + 0.2) - (note.startTime || 0), 0.05, 1.8);
+      const noteStart = note.startTime ?? 0;
+      const noteEnd = note.endTime ?? (noteStart + DEFAULT_NOTE_DURATION);
+      const dur = clamp(noteEnd - noteStart, 0.05, 1.8);
 
       if (note.isDrum) {
         const noise = state.fxCtx.createBufferSource();
         const b = state.fxCtx.createBuffer(1, Math.floor(state.fxCtx.sampleRate * 0.08), state.fxCtx.sampleRate);
         const d = b.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * 8);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * DRUM_DECAY_RATE);
         noise.buffer = b;
         const g = state.fxCtx.createGain();
-        g.gain.value = Number($('drumsVol').value) * 0.45;
+        g.gain.value = state.liveLevels.drums * 0.45;
         noise.connect(g);
         g.connect(state.fx.input);
         noise.start(t);
@@ -526,13 +546,13 @@
         return;
       }
 
-      const freq = 440 * Math.pow(2, ((note.pitch || 60) - 69) / 12);
+      const freq = midiToFreq(note.pitch || 60);
       const osc = state.fxCtx.createOscillator();
       const gain = state.fxCtx.createGain();
       osc.type = 'triangle';
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, Number($('melodyVol').value) * 0.14), t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, state.liveLevels.melody * 0.14), t + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       osc.connect(gain);
       gain.connect(state.fx.input);
@@ -618,27 +638,27 @@
 
     function encodeWav(samples, sampleRate) {
       const b = new ArrayBuffer(44 + samples.length * 2);
-      const v = new DataView(b);
-      const write = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      const dataView = new DataView(b);
+      const write = (offset, str) => { for (let i = 0; i < str.length; i++) dataView.setUint8(offset + i, str.charCodeAt(i)); };
       write(0, 'RIFF');
-      v.setUint32(4, 36 + samples.length * 2, true);
+      dataView.setUint32(4, 36 + samples.length * 2, true);
       write(8, 'WAVE');
       write(12, 'fmt ');
-      v.setUint32(16, 16, true);
-      v.setUint16(20, 1, true);
-      v.setUint16(22, 1, true);
-      v.setUint32(24, sampleRate, true);
-      v.setUint32(28, sampleRate * 2, true);
-      v.setUint16(32, 2, true);
-      v.setUint16(34, 16, true);
+      dataView.setUint32(16, 16, true);
+      dataView.setUint16(20, 1, true);
+      dataView.setUint16(22, 1, true);
+      dataView.setUint32(24, sampleRate, true);
+      dataView.setUint32(28, sampleRate * 2, true);
+      dataView.setUint16(32, 2, true);
+      dataView.setUint16(34, 16, true);
       write(36, 'data');
-      v.setUint32(40, samples.length * 2, true);
+      dataView.setUint32(40, samples.length * 2, true);
       let off = 44;
       for (let i = 0; i < samples.length; i++, off += 2) {
         const s = Math.max(-1, Math.min(1, samples[i]));
-        v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        dataView.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
       }
-      return new Blob([v], { type: 'audio/wav' });
+      return new Blob([dataView], { type: 'audio/wav' });
     }
 
     async function renderWavFromSequence(seq, seconds) {
@@ -648,29 +668,31 @@
       const master = offline.createGain();
       master.gain.value = 0.9;
       master.connect(offline.destination);
+      const drumsVolume = Number($('drumsVol').value);
+      const melodyVolume = Number($('melodyVol').value);
       for (const n of (seq.notes || [])) {
         const start = n.startTime || 0;
         if (start >= seconds) continue;
-        const end = Math.min(seconds, n.endTime || start + 0.2);
+        const end = Math.min(seconds, n.endTime || start + DEFAULT_NOTE_DURATION);
         if (n.isDrum) {
           const src = offline.createBufferSource();
           const b = offline.createBuffer(1, Math.floor(sampleRate * 0.07), sampleRate);
           const d = b.getChannelData(0);
-          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * 9);
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * DRUM_DECAY_RATE);
           src.buffer = b;
           const g = offline.createGain();
-          g.gain.value = Number($('drumsVol').value) * 0.6;
+          g.gain.value = drumsVolume * 0.6;
           src.connect(g).connect(master);
           src.start(start);
           src.stop(start + 0.07);
         } else {
-          const freq = 440 * Math.pow(2, ((n.pitch || 60) - 69) / 12);
+          const freq = midiToFreq(n.pitch || 60);
           const osc = offline.createOscillator();
           osc.type = 'sine';
           osc.frequency.value = freq;
           const g = offline.createGain();
           g.gain.setValueAtTime(0.0001, start);
-          g.gain.exponentialRampToValueAtTime(Math.max(0.0001, Number($('melodyVol').value) * 0.12), start + 0.02);
+          g.gain.exponentialRampToValueAtTime(Math.max(0.0001, melodyVolume * 0.12), start + 0.02);
           g.gain.exponentialRampToValueAtTime(0.0001, end);
           osc.connect(g).connect(master);
           osc.start(start);
@@ -690,13 +712,15 @@
       }
       state.currentPrompt = prompt;
       $('generateBtn').disabled = true;
+      $('statusText').classList.remove('ok');
       $('statusText').textContent = 'Parsing prompt...';
       try {
         const parsed = parsePrompt(prompt);
         state.parsed = parsed;
         const seq = await generateSequence(parsed);
         state.sequence = seq;
-        $('statusText').innerHTML = `<span class="ok">AI sequence ready (${parsed.minutes} min @ ${parsed.bpm} BPM)</span>`;
+        $('statusText').classList.add('ok');
+        $('statusText').textContent = `AI sequence ready (${parsed.minutes} min @ ${parsed.bpm} BPM)`;
         $('playBtn').disabled = false;
         $('downloadBtn').disabled = false;
         setLoading(false);
@@ -705,6 +729,7 @@
         setLoading(false);
         const msg = err?.message || 'Unknown generation error';
         showError(`Could not generate music: ${msg}`, () => generateAndPrepare());
+        $('statusText').classList.remove('ok');
         $('statusText').textContent = 'Generation failed';
       } finally {
         $('generateBtn').disabled = false;
@@ -735,6 +760,7 @@
     $('downloadBtn').addEventListener('click', async () => {
       if (!state.sequence) return;
       $('downloadBtn').disabled = true;
+      $('statusText').classList.remove('ok');
       $('statusText').textContent = 'Rendering WAV offline...';
       try {
         const blob = await renderWavFromSequence(state.sequence, state.fullSeconds || 60);
