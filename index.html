@@ -182,7 +182,7 @@
         <div class="advGrid">
           <div class="ctl"><label>Temperature / randomness <span id="tempVal">0.42</span></label><input id="temperature" type="range" min="0" max="1" step="0.01" value="0.42" /></div>
           <div class="ctl"><label>BPM override (optional)</label><input id="bpmOverride" type="number" min="40" max="220" step="1" placeholder="Auto" /></div>
-          <div class="ctl"><label>Duration override in minutes (optional)</label><input id="durationOverride" type="number" min="1" step="1" placeholder="Auto" /></div>
+          <div class="ctl"><label>Duration override in minutes (optional, 10+)</label><input id="durationOverride" type="number" min="10" step="1" placeholder="Auto" /></div>
           <div class="ctl"><label>Master reverb wet/dry <span id="reverbVal">0.32</span></label><input id="reverbWet" type="range" min="0" max="1" step="0.01" value="0.32" /></div>
           <div class="ctl"><label>Master volume <span id="masterVal">0.85</span></label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.85" /></div>
           <div class="ctl"><label>Melody volume <span id="melodyVal">0.8</span></label><input id="melodyVol" type="range" min="0" max="1" step="0.01" value="0.8" /></div>
@@ -402,7 +402,8 @@
       const bpmOverride = Number($('bpmOverride').value);
       const durationOverride = Number($('durationOverride').value);
       const bpm = Number.isFinite(bpmOverride) && bpmOverride > 0 ? clamp(bpmOverride, 40, 220) : (parseBpm(prompt) || style.bpm);
-      const durationMinutes = Number.isFinite(durationOverride) && durationOverride > 0 ? durationOverride : parseDurationMinutes(prompt);
+      const parsedDuration = Number.isFinite(durationOverride) && durationOverride > 0 ? durationOverride : parseDurationMinutes(prompt);
+      const durationMinutes = Math.max(10, parsedDuration);
       const temperature = Number($('temperature').value);
       const rand = mulberry32(hashString(`${prompt}::${temperature.toFixed(3)}::${bpm}::${durationMinutes}`));
 
@@ -414,7 +415,7 @@
 
       const beat = 60 / bpm;
       const barSec = beat * 4;
-      const totalSec = Math.max(10 * 60, durationMinutes * 60);
+      const totalSec = durationMinutes * 60;
       const totalBars = Math.max(4, Math.ceil(totalSec / barSec));
 
       const sections = [];
