@@ -123,7 +123,7 @@
       </div>
       <div class="status" id="status">Ready.</div>
       <div class="progressOuter"><div id="progress" class="progressInner"></div></div>
-      <div class="small" id="progressMeta">Segment 0 of 0 • ETA —</div>
+      <div class="small" id="progressMeta">Segment 0 of 0 | ETA —</div>
       <div id="errorBox" class="error">
         <div id="errorText">Something went wrong.</div>
         <div style="margin-top:8px"><button id="retryBtn" class="ghost">Retry</button></div>
@@ -179,6 +179,9 @@
     const SEGMENT_SECONDS_EST = 45;
     const FETCH_BATCH = 3;
     const MAX_RETRIES = 2;
+    const VISUALIZER_CURVE_EXPONENT = 1.2;
+    const PROMPT_PREVIEW_MAX = 52;
+    const DOWNLOAD_URL_REVOKE_DELAY_MS = 3000;
 
     const state = {
       audioCtx: null,
@@ -226,9 +229,9 @@
     }
 
     function parseBpm(prompt) {
-      const match = prompt.match(/(?:\btempo\b|\bbpm\b)?\s*(\d{2,3})\s*\b(?:bpm)?\b/i);
-      const fromNearBpm = prompt.match(/(\d{2,3})\s*(?:bpm|tempo)/i);
-      const bpm = Number((fromNearBpm && fromNearBpm[1]) || (match && match[1]) || 90);
+      const nearTag = prompt.match(/\b(?:tempo|bpm)\b\s*[:=-]?\s*(\d{2,3})\b|(\d{2,3})\s*\b(?:bpm|tempo)\b/i);
+      const fallback = prompt.match(/\b(\d{2,3})\b/);
+      const bpm = Number((nearTag && (nearTag[1] || nearTag[2])) || (fallback && fallback[1]) || 90);
       return Math.min(220, Math.max(40, Number.isFinite(bpm) ? bpm : 90));
     }
 
@@ -244,7 +247,9 @@
 
     function enrichPrompt(prompt, bpm) {
       const parts = [];
-      for (const [regex, enriched] of keywordMap) if (regex.test(prompt)) parts.push(enriched);
+      for (const [regex, enriched] of keywordMap) {
+        if (regex.test(prompt)) parts.push(enriched);
+      }
       const flavor = parts.length ? parts.join(', ') : 'cinematic instrumental evolving arrangement';
       return `${prompt}. ${flavor}. ${bpm} BPM. high quality instrumental music.`;
     }
@@ -258,7 +263,7 @@
 
     function setProgress(pct, segDone, segTotal, etaSec) {
       $('progress').style.width = `${Math.max(0, Math.min(100, pct))}%`;
-      $('progressMeta').textContent = `Segment ${segDone} of ${segTotal} • ETA ${etaSec > 0 ? `~${Math.ceil(etaSec)}s` : '—'}`;
+      $('progressMeta').textContent = `Segment ${segDone} of ${segTotal} | ETA ${etaSec > 0 ? `~${Math.ceil(etaSec)}s` : '—'}`;
     }
 
     function showError(msg, retryFn) {
@@ -293,7 +298,7 @@
           await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
         }
       }
-      throw new Error('Unreachable');
+      throw new Error('Max retries exceeded while fetching Pollinations audio');
     }
 
     function makeSegmentPrompt(basePrompt, index) {
@@ -316,7 +321,7 @@
             const prompt = makeSegmentPrompt(basePrompt, i);
             const url = `https://gen.pollinations.ai/audio/${encodeURIComponent(prompt)}`;
             const binary = await fetchWithRetry(url);
-            const decoded = await ctx.decodeAudioData(binary.slice(0));
+            const decoded = await ctx.decodeAudioData(binary);
             buffers[i] = decoded;
             loaded += 1;
             const pct = (loaded / segmentCount) * 100;
@@ -341,6 +346,7 @@
       let offset = 0;
       for (const b of buffers) {
         for (let ch = 0; ch < channels; ch += 1) {
+          if (b.numberOfChannels < 1) continue;
           const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
           out.getChannelData(ch).set(src, offset);
         }
@@ -351,7 +357,7 @@
 
     function stopPlayback() {
       if (state.source) {
-        try { state.source.stop(); } catch (_) {}
+        try { state.source.stop(); } catch (err) { console.warn('Stop playback error:', err); }
         state.source.disconnect();
         state.source = null;
       }
@@ -425,7 +431,7 @@
         const barW = canvas.width / bars;
         for (let i = 0; i < bars; i += 1) {
           const val = data[i * step] / 255;
-          const h = Math.pow(val, 1.2) * canvas.height;
+          const h = Math.pow(val, VISUALIZER_CURVE_EXPONENT) * canvas.height;
           g.fillRect(i * barW + 1, canvas.height - h, Math.max(1, barW - 2), h);
         }
       };
@@ -485,13 +491,18 @@
       state.lastPrompt = prompt;
 
       const durationFromPrompt = parseDurationMinutes(prompt);
+      if (!state.durationTouched) {
+        const parsedClamped = Math.max(10, Math.min(120, durationFromPrompt));
+        $('durationSlider').value = String(parsedClamped);
+        $('durLabel').textContent = String(parsedClamped);
+      }
       const durationOverride = Number($('durationSlider').value) || 10;
-      const minutes = Math.max(10, state.durationTouched ? durationOverride : durationFromPrompt);
+      const minutes = Math.max(10, durationOverride);
       const bpm = Number($('bpmOverride').value) || parseBpm(prompt);
       const basePrompt = enrichPrompt(prompt, bpm);
       const segmentCount = Math.ceil((minutes * 60) / SEGMENT_SECONDS_EST);
 
-      $('nowInfo').textContent = `🎵 Generating: ${basePrompt.slice(0, 52)}${basePrompt.length > 52 ? '…' : ''}`;
+      $('nowInfo').textContent = `🎵 Generating: ${basePrompt.slice(0, PROMPT_PREVIEW_MAX)}${basePrompt.length > PROMPT_PREVIEW_MAX ? '…' : ''}`;
       $('durInfo').textContent = `Duration: ${minutes} min • ${bpm} BPM`;
       $('segInfo').textContent = `Segments: ${segmentCount}`;
       $('status').textContent = 'Starting generation...';
@@ -565,7 +576,7 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1200);
+        setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
       });
       $('regenBtn').addEventListener('click', () => {
         if (state.lastPrompt) {
