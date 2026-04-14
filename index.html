@@ -8,7 +8,7 @@
     :root {
       --bg: #0a0a18;
       --panel: #13132a;
-      --panel2: #1a1a38;
+      --panel-2: #1a1a38;
       --text: #eef0ff;
       --muted: #9ca3bf;
       --purple: #a855f7;
@@ -38,7 +38,7 @@
     .sub { color: var(--muted); margin: 0 0 10px; }
     textarea {
       width: 100%; min-height: 140px; resize: vertical; border-radius: 10px;
-      border: 1px solid rgba(34,211,238,.45); background: var(--panel2); color: var(--text);
+      border: 1px solid rgba(34,211,238,.45); background: var(--panel-2); color: var(--text);
       padding: 12px; font: inherit;
     }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -171,6 +171,9 @@
       raf: 0,
       retryFn: null
     };
+    const DEFAULT_MINUTES = 3;
+    const DEFAULT_BPM = 90;
+    const SEGMENT_SECONDS = 45;
 
     function setStatus(text, ok = false) {
       const el = $('status');
@@ -203,25 +206,22 @@
       if (mins) return Math.max(1, Number(mins[1]));
       const hrs = text.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr)\b/);
       if (hrs) return Math.max(1, Number(hrs[1]) * 60);
-      return 3;
+      return DEFAULT_MINUTES;
     }
 
     function parseBpm(prompt) {
       const bpm = prompt.toLowerCase().match(/(\d{2,3})\s*bpm\b/);
       if (bpm) return Math.max(50, Math.min(200, Number(bpm[1])));
-      return 90;
+      return DEFAULT_BPM;
     }
 
     function buildSegmentPrompt(basePrompt, segmentIndex, totalSegments) {
-      return `${basePrompt}. segment ${segmentIndex + 1} of ${totalSegments}. continue same style and key with subtle variation.`;
+      return `${basePrompt}. segment ${segmentIndex + 1} of ${totalSegments}. Continue same style and key with subtle variation.`;
     }
 
     function base64ToArrayBuffer(base64) {
       const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i += 1) bytes[i] = binary.charCodeAt(i);
-      return bytes.buffer;
+      return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
     }
 
     async function getAudioBufferFromResponse(response, endpointType) {
@@ -275,6 +275,7 @@
       for (const b of buffers) {
         for (let ch = 0; ch < channelCount; ch += 1) {
           const target = out.getChannelData(ch);
+          // When sources have different channel counts, duplicate the last source channel.
           const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
           target.set(src, offset);
         }
@@ -328,8 +329,7 @@
       $('stopBtn').disabled = true;
       $('downloadBtn').disabled = true;
 
-      const segmentSeconds = 45;
-      const segmentsNeeded = Math.max(1, Math.ceil(totalSeconds / segmentSeconds));
+      const segmentsNeeded = Math.max(1, Math.ceil(totalSeconds / SEGMENT_SECONDS));
       const decoded = [];
 
       try {
@@ -384,7 +384,7 @@
 
     function stopPlayback() {
       if (state.source) {
-        try { state.source.stop(); } catch (_) {}
+        try { state.source.stop(); } catch (err) { console.debug('stopPlayback stop() ignored:', err); }
         state.source.disconnect();
       }
       state.source = null;
@@ -400,7 +400,7 @@
       const ctx = ensureAudioCtx();
       await ctx.resume();
       if (state.source) {
-        try { state.source.stop(); } catch (_) {}
+        try { state.source.stop(); } catch (err) { console.debug('play restart stop() ignored:', err); }
       }
       const src = ctx.createBufferSource();
       src.buffer = state.fullBuffer;
@@ -424,7 +424,7 @@
       const ctx = ensureAudioCtx();
       if (!state.source || !state.fullBuffer) return;
       state.pausedAt = Math.max(0, ctx.currentTime - state.playbackStartTime);
-      try { state.source.stop(); } catch (_) {}
+      try { state.source.stop(); } catch (err) { console.debug('pause stop() ignored:', err); }
       state.source = null;
       $('playbackStatus').textContent = `Playback: paused at ${state.pausedAt.toFixed(1)}s`;
     }
