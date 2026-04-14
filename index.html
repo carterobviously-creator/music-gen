@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pollinations AI Music Generator</title>
+  <title>Music Generator</title>
   <style>
     :root {
       --bg: #0a0a18;
@@ -20,186 +20,294 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       color: var(--text);
-      background: radial-gradient(circle at 25% 0%, #22164d 0%, var(--bg) 45%) fixed;
-      min-height: 100vh;
-      padding: 16px;
+      background: radial-gradient(circle at 20% 0%, #241450 0%, var(--bg) 45%) fixed;
+      padding: 14px;
     }
-    .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
+    .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 12px; }
     .card {
-      background: linear-gradient(180deg, rgba(168,85,247,0.07), rgba(34,211,238,0.04)), var(--panel);
+      background: linear-gradient(180deg, rgba(168,85,247,.08), rgba(34,211,238,.04)), var(--panel);
       border: 1px solid rgba(168,85,247,.25);
       border-radius: 14px;
       padding: 14px;
-      box-shadow: 0 12px 35px rgba(0,0,0,.4);
+      box-shadow: 0 16px 36px rgba(0,0,0,.45);
     }
-    h1 { margin: 0 0 6px; font-size: clamp(1.4rem, 3vw, 2rem); }
-    .sub { color: var(--muted); margin: 0 0 10px; }
-    textarea {
-      width: 100%; min-height: 140px; resize: vertical; border-radius: 10px;
-      border: 1px solid rgba(34,211,238,.45); background: var(--panel-2); color: var(--text);
-      padding: 12px; font: inherit;
+    h1 { margin: 0 0 8px; font-size: clamp(1.45rem, 3vw, 2.15rem); }
+    .sub { margin: 0; color: var(--muted); }
+    #prompt {
+      width: 100%;
+      min-height: 138px;
+      margin-top: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(34,211,238,.5);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 12px;
+      font: inherit;
+      resize: vertical;
     }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .chip {
-      border: 1px solid rgba(236,72,153,.45); color: #ffd6ef; background: rgba(236,72,153,.1);
-      border-radius: 999px; padding: 7px 10px; cursor: pointer; font-size: .85rem;
+      border: 1px solid rgba(236,72,153,.5);
+      color: #ffd8ef;
+      background: rgba(236,72,153,.12);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: .86rem;
+      cursor: pointer;
     }
-    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    button {
-      border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
-      background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; font-weight: 700;
-    }
-    button.ghost { background: #202047; border: 1px solid rgba(34,211,238,.4); }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .meta {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;
+    .understood {
       margin-top: 10px;
+      padding: 9px 11px;
+      background: rgba(34,211,238,.08);
+      border: 1px solid rgba(34,211,238,.35);
+      border-radius: 10px;
+      color: #b9f7ff;
+      font-size: .92rem;
     }
-    .pill { background: #1d1d3e; border-radius: 9px; padding: 8px 10px; color: #cfd2ff; font-size: .9rem; }
-    .status { margin-top: 10px; color: var(--cyan); min-height: 1.3em; }
-    .status.ok { color: var(--ok); }
-    .error {
-      display: none; margin-top: 10px; color: #ffd9d9; background: rgba(248,113,113,.12);
-      border: 1px solid rgba(248,113,113,.55); border-radius: 9px; padding: 9px;
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: white;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      cursor: pointer;
     }
-    .progressOuter { margin-top: 10px; background: #11112a; border-radius: 999px; height: 10px; overflow: hidden; }
+    button.ghost {
+      background: #202047;
+      border: 1px solid rgba(34,211,238,.45);
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .progressOuter {
+      margin-top: 10px;
+      background: #101028;
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+    }
     .progressInner {
-      height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
-      transition: width .15s linear;
+      height: 100%;
+      width: 0;
+      transition: width .16s linear;
+      background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
     }
+    .status { margin-top: 9px; min-height: 1.2em; color: var(--cyan); }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
     canvas {
-      width: 100%; height: 170px; border-radius: 10px; margin-top: 10px;
-      border: 1px solid rgba(34,211,238,.4); background: #0a0a16;
+      width: 100%;
+      height: 190px;
+      border-radius: 12px;
+      margin-top: 10px;
+      background: #090916;
+      border: 1px solid rgba(34,211,238,.4);
     }
-    @media (max-width: 600px) { body { padding: 10px; } .card { padding: 12px; } }
+    .transport { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+    .time {
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+      color: #d9dcff;
+      font-size: .92rem;
+    }
+    details {
+      margin-top: 10px;
+      border: 1px solid rgba(168,85,247,.28);
+      border-radius: 10px;
+      background: #151536;
+      padding: 8px 10px;
+    }
+    summary { cursor: pointer; font-weight: 700; color: #ecd6ff; }
+    .advGrid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+    .ctl {
+      background: rgba(10,10,24,.58);
+      border: 1px solid rgba(34,211,238,.2);
+      border-radius: 8px;
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+    }
+    .ctl label { font-size: .86rem; color: #cdd2ff; }
+    input[type='range'], input[type='number'] { width: 100%; }
+    input[type='number'] {
+      background: #202047;
+      border: 1px solid rgba(34,211,238,.35);
+      color: white;
+      border-radius: 8px;
+      padding: 7px;
+      font: inherit;
+    }
+    .error {
+      display: none;
+      margin-top: 10px;
+      padding: 9px;
+      color: #ffdede;
+      background: rgba(248,113,113,.12);
+      border: 1px solid rgba(248,113,113,.5);
+      border-radius: 10px;
+    }
+    .error .row { margin-top: 8px; }
+    .small { color: var(--muted); font-size: .84rem; }
+    @media (max-width: 680px) {
+      body { padding: 10px; }
+      .card { padding: 12px; }
+      .time { width: 100%; margin-left: 0; }
+    }
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="card">
-      <h1>🎵 Pollinations AI Music Generator</h1>
-      <p class="sub">Real AI generation in-browser (no API keys). For long songs, it generates multiple AI segments and stitches them into one buffer.</p>
-      <textarea id="prompt" placeholder="Example: a chill lo-fi hip hop beat at 80 BPM, 10 minutes long, relaxing"></textarea>
+      <h1>🎵 Music Generator</h1>
+      <p class="sub">Prompt-driven procedural music with native Web Audio API only (no API keys, no external AI services).</p>
+      <textarea id="prompt" placeholder="Examples:&#10;lo-fi chill beat at 78 bpm for 10 minutes&#10;epic cinematic orchestral 140 bpm for 20 min&#10;ambient meditative soundscape 15 minutes"></textarea>
       <div class="chips" id="chips"></div>
+      <div class="understood" id="understood">AI understood: waiting for your prompt…</div>
       <div class="row">
         <button id="generateBtn">Generate Music</button>
-        <button id="playBtn" class="ghost" disabled>Play</button>
-        <button id="pauseBtn" class="ghost" disabled>Pause</button>
-        <button id="stopBtn" class="ghost" disabled>Stop</button>
         <button id="downloadBtn" class="ghost" disabled>Download WAV</button>
-      </div>
-      <div class="meta">
-        <div class="pill" id="endpointInfo">Endpoint: pending</div>
-        <div class="pill" id="durationInfo">Duration target: pending</div>
-        <div class="pill" id="modeInfo">Mode: waiting</div>
       </div>
       <div class="status" id="status">Ready.</div>
       <div class="progressOuter"><div class="progressInner" id="progress"></div></div>
+      <details>
+        <summary>Advanced</summary>
+        <div class="advGrid">
+          <div class="ctl"><label>Temperature / randomness <span id="tempVal">0.42</span></label><input id="temperature" type="range" min="0" max="1" step="0.01" value="0.42" /></div>
+          <div class="ctl"><label>BPM override (optional)</label><input id="bpmOverride" type="number" min="40" max="220" step="1" placeholder="Auto" /></div>
+          <div class="ctl"><label>Duration override in minutes (optional)</label><input id="durationOverride" type="number" min="1" step="1" placeholder="Auto" /></div>
+          <div class="ctl"><label>Master reverb wet/dry <span id="reverbVal">0.32</span></label><input id="reverbWet" type="range" min="0" max="1" step="0.01" value="0.32" /></div>
+          <div class="ctl"><label>Master volume <span id="masterVal">0.85</span></label><input id="masterVol" type="range" min="0" max="1" step="0.01" value="0.85" /></div>
+          <div class="ctl"><label>Melody volume <span id="melodyVal">0.8</span></label><input id="melodyVol" type="range" min="0" max="1" step="0.01" value="0.8" /></div>
+          <div class="ctl"><label>Bass volume <span id="bassVal">0.85</span></label><input id="bassVol" type="range" min="0" max="1" step="0.01" value="0.85" /></div>
+          <div class="ctl"><label>Drums volume <span id="drumsVal">0.85</span></label><input id="drumsVol" type="range" min="0" max="1" step="0.01" value="0.85" /></div>
+          <div class="ctl"><label>Pads volume <span id="padsVal">0.75</span></label><input id="padsVol" type="range" min="0" max="1" step="0.01" value="0.75" /></div>
+        </div>
+      </details>
       <div class="error" id="errorBox">
         <div id="errorText"></div>
-        <div style="margin-top:8px;"><button id="retryBtn" class="ghost">Retry</button></div>
+        <div class="row"><button id="retryBtn" class="ghost">Retry</button></div>
       </div>
     </section>
 
     <section class="card">
-      <h2 style="margin:0 0 8px;">Visualizer & Playback</h2>
-      <canvas id="viz" width="960" height="260"></canvas>
-      <div class="status" id="playbackStatus">Playback: stopped</div>
-      <div class="progressOuter"><div class="progressInner" id="playbackProgress"></div></div>
+      <h2 style="margin:0 0 8px;">Visualizer & Transport</h2>
+      <canvas id="viz" width="1080" height="320"></canvas>
+      <div class="transport">
+        <button id="playBtn" class="ghost" disabled>▶ Play</button>
+        <button id="pauseBtn" class="ghost" disabled>⏸ Pause</button>
+        <button id="stopBtn" class="ghost" disabled>⏹ Stop</button>
+        <span class="time" id="timeDisplay">00:00 / 00:00</span>
+      </div>
+      <div class="small">Tip: generation is instant scheduling logic; playback uses lookahead scheduling for long durations.</div>
     </section>
   </main>
 
   <script>
     const $ = (id) => document.getElementById(id);
-
     const EXAMPLES = [
-      'a chill lo-fi hip hop beat at 80 BPM, 10 minutes long, relaxing',
-      'cinematic ambient soundtrack, 15 min, evolving and emotional',
-      'upbeat synthwave track 120 bpm, 12 minutes, neon city night drive',
-      'deep focus piano and soft strings, 20 minutes, calm and minimal'
+      'lo-fi chill beat at 78 bpm for 10 minutes with jazzy chords and vinyl warmth',
+      'electronic dance anthem 128 bpm 12 min with bright arps and pumping rhythm',
+      'ambient meditative pads for 15 minutes, no drums, relaxing and spacious',
+      'dark horror cinematic 95 bpm for 11 min with deep bass and tension',
+      'hip hop trap groove 140 bpm for 10 minutes with 808 bass and fast hats'
     ];
 
-    const ENDPOINTS = [
-      {
-        name: 'Pollinations OpenAI POST',
-        type: 'post-openai',
-        model: 'openai-audio',
-        buildRequest: (prompt) => ({
-          url: 'https://text.pollinations.ai/openai',
-          options: {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'openai-audio',
-              modalities: ['text', 'audio'],
-              audio: { voice: 'alloy', format: 'wav' },
-              messages: [{ role: 'user', content: prompt }]
-            })
-          }
-        })
-      },
-      {
-        name: 'Pollinations Text GET',
-        type: 'get-text',
-        model: 'openai-audio',
-        buildRequest: (prompt) => ({
-          url: `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai-audio&voice=alloy`,
-          options: { method: 'GET' }
-        })
-      },
-      {
-        name: 'Pollinations Audio GET',
-        type: 'get-audio',
-        model: 'audio.pollinations.ai',
-        buildRequest: (prompt) => ({
-          url: `https://audio.pollinations.ai/${encodeURIComponent(prompt)}`,
-          options: { method: 'GET' }
-        })
-      }
+    const SEMITONES = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const SCALES = {
+      major: [0, 2, 4, 5, 7, 9, 11],
+      minor: [0, 2, 3, 5, 7, 8, 10],
+      dorian: [0, 2, 3, 5, 7, 9, 10],
+      pentatonic: [0, 2, 4, 7, 9],
+      blues: [0, 3, 5, 6, 7, 10]
+    };
+    const CHORD_QUALITIES = {
+      maj7: [0, 4, 7, 11],
+      min7: [0, 3, 7, 10],
+      dom7: [0, 4, 7, 10],
+      min: [0, 3, 7],
+      maj: [0, 4, 7],
+      sus2: [0, 2, 7],
+      dim: [0, 3, 6]
+    };
+
+    const STYLE_MAP = [
+      { keys: ['lo-fi', 'lofi', 'chill'], genre: 'lo-fi', mood: 'chill', bpm: 75, scale: 'dorian', wave: 'triangle', swing: 0.14, drums: true, jazzy: true, ambient: false },
+      { keys: ['jazz'], genre: 'jazz', mood: 'smooth', bpm: 92, scale: 'dorian', wave: 'sine', swing: 0.2, drums: true, jazzy: true, ambient: false },
+      { keys: ['electronic', 'edm', 'dance'], genre: 'electronic', mood: 'energetic', bpm: 128, scale: 'minor', wave: 'sawtooth', swing: 0.04, drums: true, jazzy: false, ambient: false },
+      { keys: ['ambient', 'relaxing', 'meditative'], genre: 'ambient', mood: 'calm', bpm: 68, scale: 'major', wave: 'sine', swing: 0.02, drums: false, jazzy: false, ambient: true },
+      { keys: ['epic', 'cinematic', 'orchestral'], genre: 'cinematic', mood: 'dramatic', bpm: 100, scale: 'minor', wave: 'sawtooth', swing: 0.02, drums: true, jazzy: false, ambient: false },
+      { keys: ['dark', 'horror'], genre: 'dark', mood: 'tense', bpm: 84, scale: 'minor', wave: 'square', swing: 0.07, drums: true, jazzy: false, ambient: false },
+      { keys: ['upbeat', 'happy', 'pop'], genre: 'pop', mood: 'bright', bpm: 118, scale: 'major', wave: 'triangle', swing: 0.08, drums: true, jazzy: false, ambient: false },
+      { keys: ['hip hop', 'hiphop', 'trap'], genre: 'trap', mood: 'street', bpm: 140, scale: 'minor', wave: 'square', swing: 0.12, drums: true, jazzy: false, ambient: false }
+    ];
+
+    const PROGRESSIONS = {
+      major: [
+        [{ degree: 1, quality: 'maj7' }, { degree: 4, quality: 'maj7' }, { degree: 5, quality: 'dom7' }, { degree: 1, quality: 'maj7' }],
+        [{ degree: 1, quality: 'maj7' }, { degree: 5, quality: 'dom7' }, { degree: 6, quality: 'min7' }, { degree: 4, quality: 'maj7' }],
+        [{ degree: 2, quality: 'min7' }, { degree: 5, quality: 'dom7' }, { degree: 1, quality: 'maj7' }, { degree: 6, quality: 'min7' }]
+      ],
+      minor: [
+        [{ degree: 1, quality: 'min7' }, { degree: 6, quality: 'maj7' }, { degree: 3, quality: 'maj7' }, { degree: 7, quality: 'dom7' }],
+        [{ degree: 1, quality: 'min7' }, { degree: 4, quality: 'min7' }, { degree: 6, quality: 'maj7' }, { degree: 5, quality: 'min7' }],
+        [{ degree: 1, quality: 'min7' }, { degree: 7, quality: 'dom7' }, { degree: 6, quality: 'maj7' }, { degree: 7, quality: 'dom7' }]
+      ],
+      dorian: [
+        [{ degree: 1, quality: 'min7' }, { degree: 4, quality: 'maj7' }, { degree: 7, quality: 'dom7' }, { degree: 1, quality: 'min7' }],
+        [{ degree: 2, quality: 'min7' }, { degree: 5, quality: 'dom7' }, { degree: 1, quality: 'min7' }, { degree: 4, quality: 'maj7' }]
+      ]
+    };
+
+    const SECTION_TEMPLATE = [
+      { name: 'intro', bars: 8, intensity: 0.35, drums: 0.1 },
+      { name: 'verse', bars: 16, intensity: 0.62, drums: 0.8 },
+      { name: 'chorus', bars: 16, intensity: 0.95, drums: 1 },
+      { name: 'verse', bars: 16, intensity: 0.68, drums: 0.9 },
+      { name: 'chorus', bars: 16, intensity: 1, drums: 1 },
+      { name: 'bridge', bars: 8, intensity: 0.55, drums: 0.6 },
+      { name: 'chorus', bars: 16, intensity: 1, drums: 1 },
+      { name: 'outro', bars: 8, intensity: 0.3, drums: 0.25 }
     ];
 
     const state = {
-      audioCtx: null,
-      analyser: null,
-      source: null,
-      fullBuffer: null,
-      endpointUsed: 'none',
-      playbackStartTime: 0,
+      promptPlan: null,
+      allEvents: [],
+      isGenerated: false,
+      retryFn: null,
+      live: null,
       pausedAt: 0,
-      raf: 0,
-      retryFn: null
+      timerRaf: 0,
+      vizRaf: 0
     };
-    const DEFAULT_MINUTES = 3;
-    const DEFAULT_BPM = 90;
-    const SEGMENT_SECONDS = 45;
-    const VISUALIZER_BAR_WIDTH_MULTIPLIER = 2.8;
-    const VISUALIZER_BIN_STEP = 3;
 
-    function setStatus(text, ok = false) {
+    const LOOKAHEAD_MS = 25;
+    const SCHEDULE_AHEAD_SECONDS = 0.25;
+
+    function setStatus(text, kind = '') {
       const el = $('status');
       el.textContent = text;
-      el.classList.toggle('ok', !!ok);
+      el.classList.remove('ok', 'err');
+      if (kind) el.classList.add(kind);
     }
 
-    function setProgress(percent) {
-      $('progress').style.width = `${Math.max(0, Math.min(100, percent))}%`;
-    }
-
-    function setPlaybackProgress(percent) {
-      $('playbackProgress').style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    function setProgress(v) {
+      $('progress').style.width = `${Math.max(0, Math.min(100, v))}%`;
     }
 
     function showError(message, retryFn = null) {
       $('errorText').textContent = message;
       $('errorBox').style.display = 'block';
       state.retryFn = retryFn;
-    }
-
-    function safeStopSource(context) {
-      if (!state.source) return;
-      try { state.source.stop(); } catch (err) { console.debug(`${context} stop() ignored:`, err); }
+      setStatus('Something went wrong. See details below.', 'err');
     }
 
     function clearError() {
@@ -207,349 +315,795 @@
       state.retryFn = null;
     }
 
-    function parseDurationMinutes(prompt) {
-      const text = prompt.toLowerCase();
-      const mins = text.match(/(\d+(?:\.\d+)?)\s*(minutes|minute|mins|min)\b/);
-      if (mins) return Math.max(1, Number(mins[1]));
-      const hrs = text.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr)\b/);
-      if (hrs) return Math.max(1, Number(hrs[1]) * 60);
-      return DEFAULT_MINUTES;
-    }
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
-    function parseBpm(prompt) {
-      const bpm = prompt.toLowerCase().match(/(\d{2,3})\s*bpm\b/);
-      if (bpm) return Math.max(50, Math.min(200, Number(bpm[1])));
-      return DEFAULT_BPM;
-    }
-
-    function buildSegmentPrompt(basePrompt, segmentIndex, totalSegments) {
-      return `${basePrompt}. Segment ${segmentIndex + 1} of ${totalSegments}. Continue same style and key with subtle variation.`;
-    }
-
-    function base64ToArrayBuffer(base64) {
-      const binary = atob(base64);
-      return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
-    }
-
-    async function getAudioBufferFromResponse(response, endpointType) {
-      const ct = (response.headers.get('content-type') || '').toLowerCase();
-      // post-openai returns JSON with base64 data; GET endpoints usually return raw audio bytes.
-      if (endpointType === 'post-openai' || ct.includes('application/json') || ct.includes('text/plain')) {
-        const data = await response.json();
-        const b64 = data?.choices?.[0]?.message?.audio?.data || data?.audio?.data || data?.data;
-        if (!b64 || typeof b64 !== 'string') throw new Error('No base64 audio returned');
-        return base64ToArrayBuffer(b64);
+    function hashString(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i += 1) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
       }
-      return await response.arrayBuffer();
+      return h >>> 0;
     }
 
-    async function fetchOnePollinationsSegment(prompt) {
-      const failures = [];
-      for (const endpoint of ENDPOINTS) {
-        try {
-          const req = endpoint.buildRequest(prompt);
-          const response = await fetch(req.url, req.options);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const audioData = await getAudioBufferFromResponse(response, endpoint.type);
-          state.endpointUsed = `${endpoint.name} (${endpoint.model})`;
-          $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
-          return audioData;
-        } catch (err) {
-          failures.push(`${endpoint.name}: ${err.message}`);
+    function mulberry32(a) {
+      return function rand() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function choose(rand, arr) { return arr[Math.floor(rand() * arr.length)]; }
+
+    function parseDurationMinutes(text) {
+      const input = text.toLowerCase();
+      const mins = input.match(/(\d+(?:\.\d+)?)\s*(minutes|minute|mins|min)\b/);
+      if (mins) return Math.max(1, Number(mins[1]));
+      const hrs = input.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr)\b/);
+      if (hrs) return Math.max(1, Number(hrs[1]) * 60);
+      return 10;
+    }
+
+    function parseBpm(text) {
+      const m = text.toLowerCase().match(/(\d{2,3})\s*bpm\b/);
+      if (m) return clamp(Number(m[1]), 40, 220);
+      return null;
+    }
+
+    function parseStyle(text) {
+      const t = text.toLowerCase();
+      let found = null;
+      STYLE_MAP.forEach((s) => {
+        if (s.keys.some((k) => t.includes(k)) && !found) found = s;
+      });
+      return found || { genre: 'hybrid', mood: 'balanced', bpm: 96, scale: 'minor', wave: 'triangle', swing: 0.08, drums: true, jazzy: false, ambient: false };
+    }
+
+    function midiToFreq(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    function degreeToMidi(rootMidi, scaleName, degree, octaveOffset = 0) {
+      const intervals = SCALES[scaleName] || SCALES.minor;
+      const zeroBased = degree - 1;
+      const idx = ((zeroBased % intervals.length) + intervals.length) % intervals.length;
+      const oct = Math.floor(zeroBased / intervals.length);
+      return rootMidi + intervals[idx] + (12 * (oct + octaveOffset));
+    }
+
+    function buildChord(rootMidi, scaleName, degree, quality, octaveOffset = 0) {
+      const base = degreeToMidi(rootMidi, scaleName, degree, octaveOffset);
+      const pattern = CHORD_QUALITIES[quality] || CHORD_QUALITIES.min7;
+      return pattern.map((i) => base + i);
+    }
+
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds)) return '00:00';
+      const s = Math.max(0, Math.floor(seconds));
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    }
+
+    function updateSliderLabels() {
+      $('tempVal').textContent = Number($('temperature').value).toFixed(2);
+      $('reverbVal').textContent = Number($('reverbWet').value).toFixed(2);
+      $('masterVal').textContent = Number($('masterVol').value).toFixed(2);
+      $('melodyVal').textContent = Number($('melodyVol').value).toFixed(2);
+      $('bassVal').textContent = Number($('bassVol').value).toFixed(2);
+      $('drumsVal').textContent = Number($('drumsVol').value).toFixed(2);
+      $('padsVal').textContent = Number($('padsVol').value).toFixed(2);
+    }
+
+    function parsePrompt(prompt) {
+      const style = parseStyle(prompt);
+      const bpmOverride = Number($('bpmOverride').value);
+      const durationOverride = Number($('durationOverride').value);
+      const bpm = Number.isFinite(bpmOverride) && bpmOverride > 0 ? clamp(bpmOverride, 40, 220) : (parseBpm(prompt) || style.bpm);
+      const durationMinutes = Number.isFinite(durationOverride) && durationOverride > 0 ? durationOverride : parseDurationMinutes(prompt);
+      const temperature = Number($('temperature').value);
+      const rand = mulberry32(hashString(`${prompt}::${temperature.toFixed(3)}::${bpm}::${durationMinutes}`));
+
+      const rootName = choose(rand, ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'Bb', 'Eb']);
+      const rootMidi = 48 + (SEMITONES[rootName] ?? 0);
+      const scaleName = style.scale;
+      const progressionPool = PROGRESSIONS[scaleName] || PROGRESSIONS.minor;
+      const progression = choose(rand, progressionPool);
+
+      const beat = 60 / bpm;
+      const barSec = beat * 4;
+      const totalSec = Math.max(10 * 60, durationMinutes * 60);
+      const totalBars = Math.max(4, Math.ceil(totalSec / barSec));
+
+      const sections = [];
+      let barsAccum = 0;
+      while (barsAccum < totalBars) {
+        for (const base of SECTION_TEMPLATE) {
+          if (barsAccum >= totalBars) break;
+          const barsLeft = totalBars - barsAccum;
+          const count = Math.min(base.bars, barsLeft);
+          sections.push({ ...base, bars: count, startBar: barsAccum });
+          barsAccum += count;
         }
       }
-      throw new Error(`All Pollinations endpoints failed. ${failures.join(' | ')}`);
+
+      const summary = `AI understood: genre ${style.genre}, mood ${style.mood}, ${bpm} BPM, ${durationMinutes.toFixed(1)} min, key ${rootName} ${scaleName}`;
+      $('understood').textContent = summary;
+
+      return { prompt, style, bpm, beat, barSec, durationMinutes, totalSec: totalBars * barSec, totalBars, rootMidi, rootName, scaleName, progression, sections, temperature, rand };
     }
 
-    function ensureAudioCtx() {
-      if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      return state.audioCtx;
+    function melodyCandidates(plan, chordNotes, prevNote, section) {
+      const chordTones = chordNotes.map((n) => n + 12);
+      const scale = SCALES[plan.scaleName] || SCALES.minor;
+      const scaleRun = scale.map((s) => plan.rootMidi + s + 12);
+      const upper = scale.map((s) => plan.rootMidi + s + 24);
+      const pool = [...new Set([...chordTones, ...scaleRun, ...upper])].sort((a, b) => a - b);
+      if (prevNote == null) return pool;
+      return pool
+        .map((n) => ({ n, score: Math.abs(n - prevNote) }))
+        .sort((a, b) => a.score - b.score)
+        .map((x) => x.n)
+        .slice(0, section.intensity > 0.85 ? 9 : 7);
     }
 
-    async function decodeAudio(arrayBuffer) {
-      const ctx = ensureAudioCtx();
-      const cloned = arrayBuffer.slice(0);
-      return await ctx.decodeAudioData(cloned);
+    function addEvent(events, event) {
+      if (event.time < 0 || event.time > Number.MAX_SAFE_INTEGER) return;
+      events.push(event);
     }
 
-    function concatAudioBuffers(buffers) {
-      if (!buffers.length) return null;
-      const sampleRate = buffers[0].sampleRate;
-      const channelCount = Math.max(...buffers.map((b) => b.numberOfChannels));
-      const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
-      const ctx = ensureAudioCtx();
-      const out = ctx.createBuffer(channelCount, totalLength, sampleRate);
-      let offset = 0;
-      for (const b of buffers) {
-        for (let ch = 0; ch < channelCount; ch += 1) {
-          const target = out.getChannelData(ch);
-          // When the target has more channels than the source buffer, reuse the source's last channel.
-          if (b.numberOfChannels > 0) {
-            const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
-            target.set(src, offset);
+    function generateEvents(plan) {
+      const events = [];
+      const rand = plan.rand;
+      let prevMelody = null;
+      let prevBass = null;
+
+      for (const section of plan.sections) {
+        const sectionDrums = plan.style.drums && (!plan.style.ambient) && rand() < section.drums + 0.12;
+
+        for (let localBar = 0; localBar < section.bars; localBar += 1) {
+          const absoluteBar = section.startBar + localBar;
+          const barStart = absoluteBar * plan.barSec;
+          const chordStep = plan.progression[absoluteBar % plan.progression.length];
+          const chord = buildChord(plan.rootMidi, plan.scaleName, chordStep.degree, chordStep.quality, 0);
+          const padChord = buildChord(plan.rootMidi, plan.scaleName, chordStep.degree, chordStep.quality, 1);
+
+          const padDur = section.name === 'intro' || section.name === 'outro' ? plan.barSec * 0.96 : plan.barSec * (1 + 0.9 * (rand() * 0.25));
+          addEvent(events, { track: 'pads', time: barStart, duration: Math.min(padDur, plan.barSec * 1.5), notes: padChord, velocity: 0.48 + rand() * 0.18, wave: plan.style.wave });
+
+          if (!plan.style.ambient && section.intensity > 0.58) {
+            const arpPattern = [0, 2, 1, 3, 2, 1, 0, 2];
+            const eighth = plan.beat / 2;
+            for (let i = 0; i < arpPattern.length; i += 1) {
+              const note = padChord[arpPattern[i] % padChord.length] + (i % 2 === 0 ? 12 : 0);
+              const swingPush = (i % 2 === 1 ? plan.style.swing * eighth : 0);
+              addEvent(events, {
+                track: 'arp',
+                time: barStart + (i * eighth) + swingPush,
+                duration: eighth * 0.84,
+                note,
+                velocity: (0.28 + section.intensity * 0.26) * (0.92 + rand() * 0.18),
+                wave: 'sawtooth'
+              });
+            }
+          }
+
+          const bassPattern = plan.style.genre === 'jazz'
+            ? [0, 2, 4, 5]
+            : [0, 0, 3, 0];
+          for (let b = 0; b < 4; b += 1) {
+            const deg = (chordStep.degree + bassPattern[b]) % 7 || 7;
+            const note = degreeToMidi(plan.rootMidi, plan.scaleName, deg, -1);
+            const t = barStart + (b * plan.beat);
+            const velocity = (0.52 + section.intensity * 0.22) * (0.9 + rand() * 0.2);
+            addEvent(events, { track: 'bass', time: t, duration: plan.beat * (b === 3 ? 0.95 : 0.82), note, prevNote: prevBass, velocity, wave: plan.style.genre === 'trap' ? 'sine' : 'triangle' });
+            prevBass = note;
+          }
+
+          const melodicDensity = section.intensity > 0.82 ? 8 : section.intensity > 0.6 ? 6 : 4;
+          const stepDur = plan.barSec / melodicDensity;
+          for (let i = 0; i < melodicDensity; i += 1) {
+            if (rand() > 0.75 + section.intensity * 0.1) continue;
+            const candidates = melodyCandidates(plan, chord, prevMelody, section);
+            const spread = clamp(Math.floor((1 - plan.temperature) * 4), 0, Math.max(0, candidates.length - 1));
+            const idx = clamp(Math.floor(rand() * Math.max(1, candidates.length - spread)), 0, candidates.length - 1);
+            const note = candidates[idx + (rand() < plan.temperature * 0.45 ? spread : 0)] || candidates[idx] || chord[0] + 12;
+            const swingPush = (i % 2 === 1 ? plan.style.swing * stepDur * 0.65 : 0);
+            const dur = stepDur * (0.6 + rand() * 0.32);
+            addEvent(events, {
+              track: 'melody',
+              time: barStart + (i * stepDur) + swingPush,
+              duration: dur,
+              note,
+              velocity: (0.4 + section.intensity * 0.34) * (0.88 + rand() * 0.26),
+              wave: plan.style.wave
+            });
+            prevMelody = note;
+          }
+
+          if (sectionDrums) {
+            for (let step = 0; step < 16; step += 1) {
+              const st = barStart + (step * (plan.beat / 4));
+              const isDown = step % 4 === 0;
+              const off = step % 2 === 1;
+              const swingPush = off ? plan.style.swing * (plan.beat / 4) : 0;
+
+              if (plan.style.genre === 'electronic' && isDown) addEvent(events, { track: 'drums', kind: 'kick', time: st, velocity: 0.9 + rand() * 0.08 });
+              if (plan.style.genre !== 'electronic' && (step === 0 || step === 8 || (section.intensity > 0.86 && step === 12))) addEvent(events, { track: 'drums', kind: 'kick', time: st, velocity: 0.82 + rand() * 0.12 });
+              if (step === 4 || step === 12) addEvent(events, { track: 'drums', kind: 'snare', time: st + swingPush * 0.28, velocity: 0.75 + rand() * 0.18 });
+              if (plan.style.genre === 'trap' && (step % 2 === 0 || rand() < 0.32)) addEvent(events, { track: 'drums', kind: 'hat', time: st + swingPush, velocity: 0.33 + rand() * 0.18 });
+              if (plan.style.genre !== 'trap' && (step % 2 === 0 || (section.intensity > 0.86 && rand() < 0.2))) addEvent(events, { track: 'drums', kind: 'hat', time: st + swingPush, velocity: 0.3 + rand() * 0.14 });
+              if ((section.name === 'chorus' || section.name === 'bridge') && (step === 6 || step === 14) && rand() < 0.58) addEvent(events, { track: 'drums', kind: 'clap', time: st + swingPush * 0.4, velocity: 0.5 + rand() * 0.2 });
+            }
+          }
+
+          if (plan.style.genre === 'lo-fi' && rand() < 0.32) {
+            addEvent(events, { track: 'noise', time: barStart, duration: plan.barSec, velocity: 0.08 + rand() * 0.04 });
           }
         }
-        offset += b.length;
       }
-      return out;
+
+      return events
+        .filter((e) => e.time <= plan.totalSec)
+        .sort((a, b) => a.time - b.time);
     }
 
-    function createProceduralFallback(seconds, bpm) {
-      const ctx = ensureAudioCtx();
-      const sr = ctx.sampleRate;
-      const length = Math.floor(seconds * sr);
-      const out = ctx.createBuffer(2, length, sr);
-      const beat = 60 / bpm;
-      const kickHz = 55;
-      const bassHz = 82.41;
+    function createImpulseResponse(ctx, seconds = 3.4, decay = 2.8) {
+      const len = Math.floor(ctx.sampleRate * seconds);
+      const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
       for (let ch = 0; ch < 2; ch += 1) {
-        const data = out.getChannelData(ch);
-        for (let i = 0; i < length; i += 1) {
-          const t = i / sr;
-          const beatPos = (t % beat) / beat;
-          const barPos = (t % (beat * 4)) / (beat * 4);
-          const kickEnv = Math.exp(-beatPos * 16) * (beatPos < 0.22 ? 1 : 0);
-          const snareTrig = ((t + beat * 0.5) % beat) / beat;
-          const snareEnv = Math.exp(-snareTrig * 25) * (snareTrig < 0.12 ? 1 : 0);
-          const hat = ((Math.random() * 2 - 1) * 0.05) * (1 - ((t * 8) % 1));
-          const kick = Math.sin(2 * Math.PI * kickHz * t * (1 - beatPos * 0.6)) * kickEnv * 0.65;
-          const bass = Math.sin(2 * Math.PI * (bassHz + 24 * Math.sin(barPos * Math.PI * 2)) * t) * 0.22;
-          const pad = (Math.sin(2 * Math.PI * 220 * t) + Math.sin(2 * Math.PI * 330 * t)) * 0.08;
-          const snare = (Math.random() * 2 - 1) * snareEnv * 0.22;
-          data[i] = Math.max(-1, Math.min(1, kick + bass + pad + snare + hat));
+        const d = impulse.getChannelData(ch);
+        for (let i = 0; i < len; i += 1) {
+          const t = i / len;
+          d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
         }
       }
-      return out;
+      return impulse;
     }
 
-    async function generateSong() {
-      clearError();
-      setPlaybackProgress(0);
-      const prompt = $('prompt').value.trim();
-      if (!prompt) return showError('Please enter a prompt.', null);
+    function createNoiseBuffer(ctx) {
+      const size = ctx.sampleRate * 2;
+      const b = ctx.createBuffer(1, size, ctx.sampleRate);
+      const data = b.getChannelData(0);
+      for (let i = 0; i < size; i += 1) data[i] = Math.random() * 2 - 1;
+      return b;
+    }
 
-      const minutes = parseDurationMinutes(prompt);
-      const bpm = parseBpm(prompt);
-      const totalSeconds = Math.round(minutes * 60);
-      $('durationInfo').textContent = `Duration target: ~${minutes.toFixed(1)} min (${totalSeconds}s)`;
+    function createAudioRig(ctx, withAnalyser = true) {
+      const masterIn = ctx.createGain();
+      const dry = ctx.createGain();
+      const reverbSend = ctx.createGain();
+      const delaySend = ctx.createGain();
+      const convolver = ctx.createConvolver();
+      const reverbGain = ctx.createGain();
+      const delay = ctx.createDelay(1.2);
+      const feedback = ctx.createGain();
+      const delayGain = ctx.createGain();
+      const compressor = ctx.createDynamicsCompressor();
+      const master = ctx.createGain();
 
-      $('generateBtn').disabled = true;
-      $('playBtn').disabled = true;
+      const melodyBus = ctx.createGain();
+      const bassBus = ctx.createGain();
+      const drumsBus = ctx.createGain();
+      const padsBus = ctx.createGain();
+
+      const padFilter = ctx.createBiquadFilter();
+      padFilter.type = 'lowpass';
+      padFilter.frequency.value = 2200;
+      padFilter.Q.value = 0.7;
+
+      convolver.buffer = createImpulseResponse(ctx);
+      delay.delayTime.value = 0.28;
+      feedback.gain.value = 0.32;
+      delayGain.gain.value = 0.18;
+      reverbGain.gain.value = Number($('reverbWet').value);
+      dry.gain.value = 1 - Number($('reverbWet').value) * 0.45;
+
+      compressor.threshold.value = -20;
+      compressor.knee.value = 24;
+      compressor.ratio.value = 3.5;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.2;
+      master.gain.value = Number($('masterVol').value);
+
+      melodyBus.gain.value = Number($('melodyVol').value);
+      bassBus.gain.value = Number($('bassVol').value);
+      drumsBus.gain.value = Number($('drumsVol').value);
+      padsBus.gain.value = Number($('padsVol').value);
+
+      melodyBus.connect(masterIn);
+      bassBus.connect(masterIn);
+      drumsBus.connect(masterIn);
+      padsBus.connect(padFilter);
+      padFilter.connect(masterIn);
+
+      masterIn.connect(dry);
+      masterIn.connect(reverbSend);
+      masterIn.connect(delaySend);
+      reverbSend.connect(convolver);
+      convolver.connect(reverbGain);
+      delaySend.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(delay);
+      delay.connect(delayGain);
+
+      dry.connect(compressor);
+      reverbGain.connect(compressor);
+      delayGain.connect(compressor);
+
+      compressor.connect(master);
+
+      let analyser = null;
+      if (withAnalyser) {
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        master.connect(analyser);
+        analyser.connect(ctx.destination);
+      } else {
+        master.connect(ctx.destination);
+      }
+
+      const lfo = ctx.createOscillator();
+      const lfoAmp = ctx.createGain();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.1;
+      lfoAmp.gain.value = 500;
+      lfo.connect(lfoAmp);
+      lfoAmp.connect(padFilter.frequency);
+      lfo.start();
+
+      return { masterIn, dry, reverbGain, melodyBus, bassBus, drumsBus, padsBus, analyser, master, lfo, padFilter };
+    }
+
+    function scheduleADSR(gain, t, duration, velocity, adsr) {
+      const a = Math.max(0.001, adsr.attack);
+      const d = Math.max(0.001, adsr.decay);
+      const s = clamp(adsr.sustain, 0, 1);
+      const r = Math.max(0.01, adsr.release);
+      const sustainStart = t + a + d;
+      const releaseAt = t + Math.max(a + d + 0.01, duration * 0.96);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), t + a);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity * s), sustainStart);
+      gain.gain.setValueAtTime(Math.max(0.0001, velocity * s), releaseAt);
+      gain.gain.exponentialRampToValueAtTime(0.0001, releaseAt + r);
+      return releaseAt + r;
+    }
+
+    function scheduleMelodic(ctx, rig, event, plan) {
+      const out = event.track === 'bass' ? rig.bassBus : (event.track === 'pads' ? rig.padsBus : rig.melodyBus);
+      const now = event.absTime;
+      const adsr = event.track === 'pads'
+        ? { attack: 0.12, decay: 0.45, sustain: 0.65, release: 0.8 }
+        : event.track === 'bass'
+          ? { attack: 0.01, decay: 0.12, sustain: 0.72, release: 0.18 }
+          : { attack: 0.01, decay: 0.1, sustain: 0.55, release: 0.24 };
+
+      const noteList = event.notes || [event.note];
+      for (const midi of noteList) {
+        const gain = ctx.createGain();
+        gain.connect(out);
+        const releaseEnd = scheduleADSR(gain, now, event.duration, event.velocity * (0.65 + Math.random() * 0.2), adsr);
+
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const osc3 = ctx.createOscillator();
+        const toneFilter = ctx.createBiquadFilter();
+        toneFilter.type = event.track === 'bass' ? 'lowpass' : 'bandpass';
+        toneFilter.frequency.value = event.track === 'bass' ? 420 : 1300;
+        toneFilter.Q.value = event.track === 'bass' ? 0.8 : 0.45;
+
+        const freq = midiToFreq(midi);
+        const prevFreq = event.prevNote ? midiToFreq(event.prevNote) : freq;
+
+        osc1.type = event.wave || plan.style.wave || 'triangle';
+        osc2.type = event.track === 'pads' ? 'sine' : 'sawtooth';
+        osc3.type = event.track === 'bass' ? 'triangle' : 'square';
+
+        osc1.frequency.setValueAtTime(freq, now);
+        osc2.frequency.setValueAtTime(freq * 1.003, now);
+        osc3.frequency.setValueAtTime(freq * 0.997, now);
+
+        if (event.track === 'bass' && event.prevNote) {
+          osc1.frequency.setValueAtTime(prevFreq, now);
+          osc1.frequency.exponentialRampToValueAtTime(freq, now + 0.06);
+        }
+
+        const detuneLfo = ctx.createOscillator();
+        const detuneDepth = ctx.createGain();
+        detuneLfo.type = 'sine';
+        detuneLfo.frequency.value = event.track === 'bass' ? 4.2 : 5.7;
+        detuneDepth.gain.value = event.track === 'bass' ? 6 : 9;
+        detuneLfo.connect(detuneDepth);
+        detuneDepth.connect(osc1.detune);
+
+        osc1.connect(toneFilter);
+        osc2.connect(toneFilter);
+        osc3.connect(toneFilter);
+        toneFilter.connect(gain);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc3.start(now);
+        detuneLfo.start(now);
+
+        const stopTime = releaseEnd + 0.02;
+        osc1.stop(stopTime);
+        osc2.stop(stopTime);
+        osc3.stop(stopTime);
+        detuneLfo.stop(stopTime);
+      }
+    }
+
+    function scheduleNoiseLayer(ctx, rig, event) {
+      const src = ctx.createBufferSource();
+      src.buffer = state.live?.noiseBuffer || createNoiseBuffer(ctx);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 2200;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(event.velocity || 0.06, event.absTime);
+      g.gain.linearRampToValueAtTime((event.velocity || 0.06) * 0.7, event.absTime + event.duration);
+      g.gain.linearRampToValueAtTime(0.0001, event.absTime + event.duration + 0.1);
+      src.connect(hp);
+      hp.connect(g);
+      g.connect(rig.padsBus);
+      src.start(event.absTime);
+      src.stop(event.absTime + event.duration + 0.15);
+    }
+
+    function scheduleDrum(ctx, rig, event) {
+      const t = event.absTime;
+      const vel = event.velocity || 0.7;
+      if (event.kind === 'kick') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(145, t);
+        osc.frequency.exponentialRampToValueAtTime(42, t + 0.14);
+        gain.gain.setValueAtTime(vel, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+        osc.connect(gain);
+        gain.connect(rig.drumsBus);
+        osc.start(t);
+        osc.stop(t + 0.18);
+      } else {
+        const src = ctx.createBufferSource();
+        src.buffer = state.live?.noiseBuffer || createNoiseBuffer(ctx);
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+
+        if (event.kind === 'snare') {
+          filter.type = 'bandpass';
+          filter.frequency.value = 1800;
+          filter.Q.value = 0.8;
+          gain.gain.setValueAtTime(vel * 0.75, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+        } else if (event.kind === 'clap') {
+          filter.type = 'highpass';
+          filter.frequency.value = 1300;
+          gain.gain.setValueAtTime(vel * 0.7, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        } else {
+          filter.type = 'highpass';
+          filter.frequency.value = 7000;
+          gain.gain.setValueAtTime(vel * 0.46, t);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+        }
+
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(rig.drumsBus);
+        src.start(t);
+        src.stop(t + 0.24);
+      }
+    }
+
+    function scheduleEvent(ctx, rig, event, plan) {
+      if (event.track === 'drums') return scheduleDrum(ctx, rig, event);
+      if (event.track === 'noise') return scheduleNoiseLayer(ctx, rig, event);
+      return scheduleMelodic(ctx, rig, event, plan);
+    }
+
+    function stopPlayback(resetPause = false) {
+      const live = state.live;
+      if (!live) return;
+      clearInterval(live.scheduler);
+      live.scheduler = null;
+      if (resetPause) state.pausedAt = 0;
+      if (live.rig && live.rig.lfo) {
+        try { live.rig.lfo.stop(); } catch (_) {}
+      }
+      state.live = null;
+      cancelAnimationFrame(state.timerRaf);
+      cancelAnimationFrame(state.vizRaf);
+      state.timerRaf = 0;
+      state.vizRaf = 0;
+      $('playBtn').disabled = !state.isGenerated;
       $('pauseBtn').disabled = true;
       $('stopBtn').disabled = true;
-      $('downloadBtn').disabled = true;
+      const total = state.promptPlan?.totalSec || 0;
+      $('timeDisplay').textContent = `${formatTime(resetPause ? 0 : state.pausedAt)} / ${formatTime(total)}`;
+      if (resetPause) setStatus('Stopped.', 'ok');
+    }
 
-      const segmentsNeeded = Math.max(1, Math.ceil(totalSeconds / SEGMENT_SECONDS));
-      const decoded = [];
-
-      try {
-        $('modeInfo').textContent = 'Mode: Pollinations AI';
-        setStatus('AI generating...', false);
-
-        for (let i = 0; i < segmentsNeeded; i += 1) {
-          setStatus(`AI generating... segment ${i + 1}/${segmentsNeeded}`);
-          setProgress((i / segmentsNeeded) * 100);
-          const segmentPrompt = buildSegmentPrompt(prompt, i, segmentsNeeded);
-          const rawAudio = await fetchOnePollinationsSegment(segmentPrompt);
-          const audioBuffer = await decodeAudio(rawAudio);
-          decoded.push(audioBuffer);
+    function startTimers(ctx, startAnchor, offset) {
+      const total = state.promptPlan.totalSec;
+      const tick = () => {
+        if (!state.live) return;
+        const songTime = clamp((ctx.currentTime - startAnchor) + offset, 0, total);
+        $('timeDisplay').textContent = `${formatTime(songTime)} / ${formatTime(total)}`;
+        if (songTime >= total - 0.02) {
+          stopPlayback(true);
+          return;
         }
-
-        state.fullBuffer = concatAudioBuffers(decoded);
-        setProgress(100);
-        setStatus('AI generation complete.', true);
-      } catch (err) {
-        setStatus('AI failed, switching to procedural fallback...');
-        $('modeInfo').textContent = 'Mode: Procedural fallback';
-        state.endpointUsed = 'fallback (Web Audio synthesis)';
-        $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
-        state.fullBuffer = createProceduralFallback(totalSeconds, bpm);
-        setProgress(100);
-        console.warn('Pollinations endpoints failed; fallback enabled:', err);
-        showError('Pollinations service is currently unavailable; using local fallback audio generation instead.', generateSong);
-      } finally {
-        $('generateBtn').disabled = false;
-      }
-
-      const hasAudio = !!state.fullBuffer;
-      $('playBtn').disabled = !hasAudio;
-      $('pauseBtn').disabled = !hasAudio;
-      $('stopBtn').disabled = !hasAudio;
-      $('downloadBtn').disabled = !hasAudio;
-      if (hasAudio) {
-        state.pausedAt = 0;
-        $('playbackStatus').textContent = `Playback: ready (${state.fullBuffer.duration.toFixed(1)}s)`;
-      }
-    }
-
-    function connectVisualizer(sourceNode) {
-      const ctx = ensureAudioCtx();
-      if (!state.analyser) {
-        state.analyser = ctx.createAnalyser();
-        state.analyser.fftSize = 2048;
-      }
-      sourceNode.connect(state.analyser);
-      state.analyser.connect(ctx.destination);
-      drawVisualizer();
-    }
-
-    function stopPlayback() {
-      if (state.source) {
-        safeStopSource('stopPlayback');
-        state.source.disconnect();
-      }
-      state.source = null;
-      cancelAnimationFrame(state.raf);
-      state.raf = 0;
-      state.pausedAt = 0;
-      setPlaybackProgress(0);
-      $('playbackStatus').textContent = 'Playback: stopped';
-    }
-
-    async function play(startOffset = null) {
-      if (!state.fullBuffer) return;
-      const ctx = ensureAudioCtx();
-      await ctx.resume();
-      if (state.source) {
-        safeStopSource('play restart');
-      }
-      const src = ctx.createBufferSource();
-      src.buffer = state.fullBuffer;
-      connectVisualizer(src);
-      state.source = src;
-      const offset = startOffset ?? state.pausedAt ?? 0;
-      state.playbackStartTime = ctx.currentTime - offset;
-      src.start(0, offset);
-      src.onended = () => {
-        if (!state.source) return;
-        state.source = null;
-        state.pausedAt = 0;
-        setPlaybackProgress(100);
-        $('playbackStatus').textContent = 'Playback: finished';
+        state.timerRaf = requestAnimationFrame(tick);
       };
-      $('playbackStatus').textContent = 'Playback: playing';
-      updatePlaybackProgressLoop();
+      state.timerRaf = requestAnimationFrame(tick);
     }
 
-    function pause() {
-      const ctx = ensureAudioCtx();
-      if (!state.source || !state.fullBuffer) return;
-      state.pausedAt = Math.max(0, ctx.currentTime - state.playbackStartTime);
-      safeStopSource('pause');
-      state.source = null;
-      $('playbackStatus').textContent = `Playback: paused at ${state.pausedAt.toFixed(1)}s`;
-    }
-
-    function updatePlaybackProgressLoop() {
-      if (!state.fullBuffer || !state.source) return;
-      const ctx = ensureAudioCtx();
-      const elapsed = Math.max(0, ctx.currentTime - state.playbackStartTime);
-      const pct = (elapsed / state.fullBuffer.duration) * 100;
-      setPlaybackProgress(pct);
-      if (pct < 100 && state.source) state.raf = requestAnimationFrame(updatePlaybackProgressLoop);
-    }
-
-    function drawVisualizer() {
-      if (!state.analyser) return;
+    function drawVisualizer(analyser) {
       const canvas = $('viz');
       const c = canvas.getContext('2d');
-      const bins = new Uint8Array(state.analyser.frequencyBinCount);
-
+      const bins = new Uint8Array(analyser.frequencyBinCount);
       const loop = () => {
-        if (!state.analyser) return;
-        state.analyser.getByteFrequencyData(bins);
+        if (!state.live || !state.live.rig || !state.live.rig.analyser) return;
+        analyser.getByteFrequencyData(bins);
         c.clearRect(0, 0, canvas.width, canvas.height);
         const grad = c.createLinearGradient(0, 0, canvas.width, 0);
         grad.addColorStop(0, '#22d3ee');
         grad.addColorStop(0.5, '#a855f7');
         grad.addColorStop(1, '#ec4899');
         c.fillStyle = grad;
-        const barW = canvas.width / bins.length * VISUALIZER_BAR_WIDTH_MULTIPLIER;
+        const barW = canvas.width / bins.length * 2.8;
         let x = 0;
-        for (let i = 0; i < bins.length; i += VISUALIZER_BIN_STEP) {
+        for (let i = 0; i < bins.length; i += 3) {
           const h = (bins[i] / 255) * canvas.height;
           c.fillRect(x, canvas.height - h, barW, h);
           x += barW + 1;
           if (x > canvas.width) break;
         }
-        state.raf = requestAnimationFrame(loop);
+        state.vizRaf = requestAnimationFrame(loop);
       };
-      cancelAnimationFrame(state.raf);
-      state.raf = requestAnimationFrame(loop);
+      state.vizRaf = requestAnimationFrame(loop);
+    }
+
+    async function play() {
+      if (!state.isGenerated || !state.promptPlan) return;
+      stopPlayback(false);
+
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      await ctx.resume();
+
+      const rig = createAudioRig(ctx, true);
+      const noiseBuffer = createNoiseBuffer(ctx);
+
+      const offset = clamp(state.pausedAt, 0, state.promptPlan.totalSec - 0.05);
+      const startAnchor = ctx.currentTime + 0.02;
+      const events = state.allEvents;
+      let idx = events.findIndex((e) => e.time >= offset - 0.001);
+      if (idx < 0) idx = events.length;
+
+      const scheduler = setInterval(() => {
+        const songNow = (ctx.currentTime - startAnchor) + offset;
+        const scheduleUntil = songNow + SCHEDULE_AHEAD_SECONDS;
+        while (idx < events.length && events[idx].time <= scheduleUntil) {
+          const e = events[idx];
+          if (e.time >= songNow - 0.03) {
+            scheduleEvent(ctx, rig, { ...e, absTime: startAnchor + (e.time - offset) }, state.promptPlan);
+          }
+          idx += 1;
+        }
+        if (songNow >= state.promptPlan.totalSec - 0.04) {
+          stopPlayback(true);
+        }
+      }, LOOKAHEAD_MS);
+
+      state.live = { ctx, rig, noiseBuffer, scheduler, startAnchor, offset };
+      $('playBtn').disabled = true;
+      $('pauseBtn').disabled = false;
+      $('stopBtn').disabled = false;
+      setStatus('Playing.', 'ok');
+      startTimers(ctx, startAnchor, offset);
+      drawVisualizer(rig.analyser);
+    }
+
+    function pause() {
+      if (!state.live) return;
+      const { ctx, startAnchor, offset } = state.live;
+      state.pausedAt = clamp((ctx.currentTime - startAnchor) + offset, 0, state.promptPlan.totalSec);
+      stopPlayback(false);
+      setStatus(`Paused at ${formatTime(state.pausedAt)}.`, 'ok');
+      $('playBtn').disabled = false;
+      $('pauseBtn').disabled = true;
+      $('stopBtn').disabled = false;
+    }
+
+    function hardStop() {
+      state.pausedAt = 0;
+      stopPlayback(true);
+      $('playBtn').disabled = !state.isGenerated;
+      $('pauseBtn').disabled = true;
+      $('stopBtn').disabled = true;
+      $('timeDisplay').textContent = `00:00 / ${formatTime(state.promptPlan?.totalSec || 0)}`;
     }
 
     function audioBufferToWav(buffer) {
-      const numChannels = buffer.numberOfChannels;
+      const channels = buffer.numberOfChannels;
       const sampleRate = buffer.sampleRate;
-      const format = 1;
+      const samples = buffer.length;
       const bitDepth = 16;
-      const numSamples = buffer.length;
-      const blockAlign = numChannels * bitDepth / 8;
+      const blockAlign = channels * bitDepth / 8;
       const byteRate = sampleRate * blockAlign;
-      const dataSize = numSamples * blockAlign;
-      const out = new ArrayBuffer(44 + dataSize);
-      const view = new DataView(out);
-
-      const writeString = (offset, s) => { for (let i = 0; i < s.length; i += 1) view.setUint8(offset + i, s.charCodeAt(i)); };
-      writeString(0, 'RIFF');
+      const dataSize = samples * blockAlign;
+      const buf = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buf);
+      const w = (o, s) => { for (let i = 0; i < s.length; i += 1) view.setUint8(o + i, s.charCodeAt(i)); };
+      w(0, 'RIFF');
       view.setUint32(4, 36 + dataSize, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
+      w(8, 'WAVE');
+      w(12, 'fmt ');
       view.setUint32(16, 16, true);
-      view.setUint16(20, format, true);
-      view.setUint16(22, numChannels, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, channels, true);
       view.setUint32(24, sampleRate, true);
       view.setUint32(28, byteRate, true);
       view.setUint16(32, blockAlign, true);
       view.setUint16(34, bitDepth, true);
-      writeString(36, 'data');
+      w(36, 'data');
       view.setUint32(40, dataSize, true);
-
       let offset = 44;
-      for (let i = 0; i < numSamples; i += 1) {
-        for (let ch = 0; ch < numChannels; ch += 1) {
-          const sample = buffer.getChannelData(ch)[i] || 0;
-          const s = Math.max(-1, Math.min(1, sample));
+      for (let i = 0; i < samples; i += 1) {
+        for (let ch = 0; ch < channels; ch += 1) {
+          const s = clamp(buffer.getChannelData(ch)[i] || 0, -1, 1);
           view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
           offset += 2;
         }
       }
-      return new Blob([out], { type: 'audio/wav' });
+      return new Blob([buf], { type: 'audio/wav' });
     }
 
-    function downloadWav() {
-      if (!state.fullBuffer) return;
-      const blob = audioBufferToWav(state.fullBuffer);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pollinations-ai-music.wav';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    async function renderOfflineWav() {
+      if (!state.promptPlan || !state.allEvents.length) throw new Error('No generated song to render.');
+      const sampleRate = 44100;
+      const length = Math.ceil(state.promptPlan.totalSec * sampleRate);
+      const off = new OfflineAudioContext(2, length, sampleRate);
+      const rig = createAudioRig(off, false);
+      rig.master.gain.value = Number($('masterVol').value);
+      const noiseBuffer = createNoiseBuffer(off);
+      const backupLive = state.live;
+      state.live = { noiseBuffer };
+      for (const event of state.allEvents) {
+        scheduleEvent(off, rig, { ...event, absTime: event.time }, state.promptPlan);
+      }
+      const rendered = await off.startRendering();
+      state.live = backupLive;
+      return audioBufferToWav(rendered);
+    }
+
+    async function downloadWav() {
+      try {
+        $('downloadBtn').disabled = true;
+        setStatus('Rendering full song to WAV…');
+        const blob = await renderOfflineWav();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'music-generator-output.wav';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1200);
+        setStatus('WAV download ready.', 'ok');
+      } catch (err) {
+        showError(`WAV export failed: ${err.message}`, downloadWav);
+      } finally {
+        $('downloadBtn').disabled = !state.isGenerated;
+      }
+    }
+
+    async function generateSong() {
+      try {
+        clearError();
+        setStatus('Parsing prompt…');
+        setProgress(6);
+        $('generateBtn').disabled = true;
+        $('playBtn').disabled = true;
+        $('pauseBtn').disabled = true;
+        $('stopBtn').disabled = true;
+        $('downloadBtn').disabled = true;
+        hardStop();
+
+        const prompt = $('prompt').value.trim();
+        if (!prompt) {
+          showError('Please enter a prompt first.', generateSong);
+          return;
+        }
+
+        const plan = parsePrompt(prompt);
+        setProgress(22);
+        setStatus('Composing song sections…');
+
+        const events = generateEvents(plan);
+        setProgress(68);
+        setStatus('Humanizing groove and scheduling lanes…');
+
+        state.promptPlan = plan;
+        state.allEvents = events;
+        state.isGenerated = events.length > 0;
+        state.pausedAt = 0;
+
+        $('playBtn').disabled = !state.isGenerated;
+        $('pauseBtn').disabled = true;
+        $('stopBtn').disabled = true;
+        $('downloadBtn').disabled = !state.isGenerated;
+        $('timeDisplay').textContent = `00:00 / ${formatTime(plan.totalSec)}`;
+
+        setProgress(100);
+        setStatus(`Generated ${events.length.toLocaleString()} events across ${plan.sections.length} sections.`, 'ok');
+      } catch (err) {
+        showError(`Generation failed: ${err.message}`, generateSong);
+      } finally {
+        $('generateBtn').disabled = false;
+      }
+    }
+
+    function bindControlUpdates() {
+      ['temperature', 'reverbWet', 'masterVol', 'melodyVol', 'bassVol', 'drumsVol', 'padsVol'].forEach((id) => {
+        $(id).addEventListener('input', () => {
+          updateSliderLabels();
+          if (state.live?.rig) {
+            const rig = state.live.rig;
+            rig.reverbGain.gain.value = Number($('reverbWet').value);
+            rig.master.gain.value = Number($('masterVol').value);
+            rig.melodyBus.gain.value = Number($('melodyVol').value);
+            rig.bassBus.gain.value = Number($('bassVol').value);
+            rig.drumsBus.gain.value = Number($('drumsVol').value);
+            rig.padsBus.gain.value = Number($('padsVol').value);
+            rig.dry.gain.value = 1 - Number($('reverbWet').value) * 0.45;
+          }
+        });
+      });
+      ['bpmOverride', 'durationOverride', 'prompt'].forEach((id) => {
+        $(id).addEventListener('input', () => {
+          try {
+            const text = $('prompt').value.trim();
+            if (!text) return;
+            const preview = parsePrompt(text);
+            $('understood').textContent = `AI understood: genre ${preview.style.genre}, mood ${preview.style.mood}, ${preview.bpm} BPM, ${preview.durationMinutes.toFixed(1)} min, key ${preview.rootName} ${preview.scaleName}`;
+          } catch (_) {}
+        });
+      });
     }
 
     function initChips() {
-      const container = $('chips');
+      const c = $('chips');
       EXAMPLES.forEach((text) => {
         const b = document.createElement('button');
         b.className = 'chip';
-        b.textContent = text;
         b.type = 'button';
-        b.addEventListener('click', () => { $('prompt').value = text; });
-        container.appendChild(b);
+        b.textContent = text;
+        b.addEventListener('click', () => {
+          $('prompt').value = text;
+          const preview = parsePrompt(text);
+          $('understood').textContent = `AI understood: genre ${preview.style.genre}, mood ${preview.style.mood}, ${preview.bpm} BPM, ${preview.durationMinutes.toFixed(1)} min, key ${preview.rootName} ${preview.scaleName}`;
+        });
+        c.appendChild(b);
       });
     }
 
     $('generateBtn').addEventListener('click', generateSong);
-    $('playBtn').addEventListener('click', () => play());
-    $('pauseBtn').addEventListener('click', pause);
-    $('stopBtn').addEventListener('click', stopPlayback);
     $('downloadBtn').addEventListener('click', downloadWav);
+    $('playBtn').addEventListener('click', play);
+    $('pauseBtn').addEventListener('click', pause);
+    $('stopBtn').addEventListener('click', hardStop);
     $('retryBtn').addEventListener('click', () => state.retryFn && state.retryFn());
 
+    updateSliderLabels();
     initChips();
+    bindControlUpdates();
   </script>
 </body>
 </html>
