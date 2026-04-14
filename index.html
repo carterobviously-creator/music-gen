@@ -146,10 +146,10 @@
     // Keep a small floor so very short durations still produce usable audio.
     const MIN_NEW_TOKENS = 32;
     const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
+    // Use Xenova/musicgen-small — the public, ungated ONNX model that works in-browser without auth.
+    // onnx-community/musicgen-small is gated and causes 401 errors; facebook/musicgen-small has no ONNX weights.
     const candidateModels = [
-      'onnx-community/musicgen-small',
-      'Xenova/musicgen-small',
-      'facebook/musicgen-small'
+      'Xenova/musicgen-small'
     ];
 
     function setStatus(message, isError = false) {
@@ -195,11 +195,11 @@
       if (generatorPromise) return generatorPromise;
 
       generatorPromise = (async () => {
-        const canUseWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
+        // Always use wasm — webgpu support for MusicGen ONNX models is inconsistent across browsers
+        // and causes silent failures / dtype warnings. wasm is reliable everywhere.
+        const devices = ['wasm'];
 
         for (const modelId of candidateModels) {
-          const devices = canUseWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
-
           for (const device of devices) {
             try {
               setStatus(`Loading model (${modelId}) on ${device}... first run can take a while.`);
