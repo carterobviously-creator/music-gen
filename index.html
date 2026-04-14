@@ -174,6 +174,8 @@
     const DEFAULT_MINUTES = 3;
     const DEFAULT_BPM = 90;
     const SEGMENT_SECONDS = 45;
+    const VISUALIZER_BAR_WIDTH_MULTIPLIER = 2.8;
+    const VISUALIZER_BIN_STEP = 3;
 
     function setStatus(text, ok = false) {
       const el = $('status');
@@ -193,6 +195,11 @@
       $('errorText').textContent = message;
       $('errorBox').style.display = 'block';
       state.retryFn = retryFn;
+    }
+
+    function safeStopSource(context) {
+      if (!state.source) return;
+      try { state.source.stop(); } catch (err) { console.debug(`${context} stop() ignored:`, err); }
     }
 
     function clearError() {
@@ -226,6 +233,7 @@
 
     async function getAudioBufferFromResponse(response, endpointType) {
       const ct = (response.headers.get('content-type') || '').toLowerCase();
+      // POST/openai returns JSON with base64 data; GET endpoints usually return raw audio bytes.
       if (endpointType === 'post-openai' || ct.includes('application/json') || ct.includes('text/plain')) {
         const data = await response.json();
         const b64 = data?.choices?.[0]?.message?.audio?.data || data?.audio?.data || data?.data;
@@ -275,7 +283,7 @@
       for (const b of buffers) {
         for (let ch = 0; ch < channelCount; ch += 1) {
           const target = out.getChannelData(ch);
-          // When sources have different channel counts, duplicate the last source channel.
+          // When the target has more channels than the source buffer, reuse the source's last channel.
           const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
           target.set(src, offset);
         }
@@ -355,7 +363,8 @@
         $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
         state.fullBuffer = createProceduralFallback(totalSeconds, bpm);
         setProgress(100);
-        showError(`Pollinations unavailable. Using fallback engine. Details: ${err.message}`, generateSong);
+        console.warn('Pollinations endpoints failed; fallback enabled:', err);
+        showError('Pollinations service is currently unavailable. Using local fallback audio generation.', generateSong);
       } finally {
         $('generateBtn').disabled = false;
       }
@@ -384,7 +393,7 @@
 
     function stopPlayback() {
       if (state.source) {
-        try { state.source.stop(); } catch (err) { console.debug('stopPlayback stop() ignored:', err); }
+        safeStopSource('stopPlayback');
         state.source.disconnect();
       }
       state.source = null;
@@ -400,7 +409,7 @@
       const ctx = ensureAudioCtx();
       await ctx.resume();
       if (state.source) {
-        try { state.source.stop(); } catch (err) { console.debug('play restart stop() ignored:', err); }
+        safeStopSource('play restart');
       }
       const src = ctx.createBufferSource();
       src.buffer = state.fullBuffer;
@@ -424,7 +433,7 @@
       const ctx = ensureAudioCtx();
       if (!state.source || !state.fullBuffer) return;
       state.pausedAt = Math.max(0, ctx.currentTime - state.playbackStartTime);
-      try { state.source.stop(); } catch (err) { console.debug('pause stop() ignored:', err); }
+      safeStopSource('pause');
       state.source = null;
       $('playbackStatus').textContent = `Playback: paused at ${state.pausedAt.toFixed(1)}s`;
     }
@@ -453,9 +462,9 @@
         grad.addColorStop(0.5, '#a855f7');
         grad.addColorStop(1, '#ec4899');
         c.fillStyle = grad;
-        const barW = canvas.width / bins.length * 2.8;
+        const barW = canvas.width / bins.length * VISUALIZER_BAR_WIDTH_MULTIPLIER;
         let x = 0;
-        for (let i = 0; i < bins.length; i += 3) {
+        for (let i = 0; i < bins.length; i += VISUALIZER_BIN_STEP) {
           const h = (bins[i] / 255) * canvas.height;
           c.fillRect(x, canvas.height - h, barW, h);
           x += barW + 1;
