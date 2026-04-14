@@ -291,6 +291,7 @@
 
     const LOOKAHEAD_MS = 25;
     const SCHEDULE_AHEAD_SECONDS = 0.25;
+    const MIN_DURATION_MINUTES = 10;
 
     function setStatus(text, kind = '') {
       const el = $('status');
@@ -343,7 +344,7 @@
       if (mins) return Math.max(1, Number(mins[1]));
       const hrs = input.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr)\b/);
       if (hrs) return Math.max(1, Number(hrs[1]) * 60);
-      return 10;
+      return MIN_DURATION_MINUTES;
     }
 
     function parseBpm(text) {
@@ -403,7 +404,7 @@
       const durationOverride = Number($('durationOverride').value);
       const bpm = Number.isFinite(bpmOverride) && bpmOverride > 0 ? clamp(bpmOverride, 40, 220) : (parseBpm(prompt) || style.bpm);
       const parsedDuration = Number.isFinite(durationOverride) && durationOverride > 0 ? durationOverride : parseDurationMinutes(prompt);
-      const durationMinutes = Math.max(10, parsedDuration);
+      const durationMinutes = Math.max(MIN_DURATION_MINUTES, parsedDuration);
       const temperature = Number($('temperature').value);
       const rand = mulberry32(hashString(`${prompt}::${temperature.toFixed(3)}::${bpm}::${durationMinutes}`));
 
@@ -441,17 +442,19 @@
       const scale = SCALES[plan.scaleName] || SCALES.minor;
       const scaleRun = scale.map((s) => plan.rootMidi + s + 12);
       const upper = scale.map((s) => plan.rootMidi + s + 24);
-      const pool = [...new Set([...chordTones, ...scaleRun, ...upper])].sort((a, b) => a - b);
+      const fallbackNote = (chordNotes[0] ?? plan.rootMidi) + 12;
+      const pool = [...new Set([...chordTones, ...scaleRun, ...upper, fallbackNote])].sort((a, b) => a - b);
       if (prevNote == null) return pool;
-      return pool
+      const ranked = pool
         .map((n) => ({ n, score: Math.abs(n - prevNote) }))
         .sort((a, b) => a.score - b.score)
         .map((x) => x.n)
         .slice(0, section.intensity > 0.85 ? 9 : 7);
+      return ranked.length ? ranked : [fallbackNote];
     }
 
     function addEvent(events, event) {
-      if (event.time < 0 || event.time > Number.MAX_SAFE_INTEGER) return;
+      if (!Number.isFinite(event.time) || event.time < 0) return;
       events.push(event);
     }
 
