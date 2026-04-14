@@ -141,7 +141,12 @@
     let generatorPromise;
     let lastBlob;
 
-    const CANDIDATE_MODELS = [
+    // MusicGen decodes roughly 50 audio tokens per second.
+    const TOKENS_PER_SECOND = 50;
+    // Keep a small floor so very short durations still produce usable audio.
+    const MIN_NEW_TOKENS = 32;
+    const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
+    const candidateModels = [
       'onnx-community/musicgen-small',
       'Xenova/musicgen-small',
       'facebook/musicgen-small'
@@ -192,7 +197,7 @@
       generatorPromise = (async () => {
         const canUseWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
 
-        for (const modelId of CANDIDATE_MODELS) {
+        for (const modelId of candidateModels) {
           const devices = canUseWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
 
           for (const device of devices) {
@@ -228,6 +233,9 @@
       }
 
       const audio = Array.isArray(first.audio) ? first.audio[0] : first.audio;
+      if (Array.isArray(first.audio) && first.audio.length === 0) {
+        throw new Error('Model returned an empty audio array.');
+      }
       if (!(audio instanceof Float32Array) && !ArrayBuffer.isView(audio)) {
         throw new Error('Audio output format is not supported.');
       }
@@ -265,7 +273,7 @@
         const generator = await loadGenerator();
         setStatus('Generating audio... this can take some time depending on your device.');
 
-        const maxNewTokens = Math.max(32, Math.round(durationSeconds * 50));
+        const maxNewTokens = Math.max(MIN_NEW_TOKENS, Math.round(durationSeconds * TOKENS_PER_SECOND));
         const output = await generator(prompt, {
           max_new_tokens: maxNewTokens,
           guidance_scale: guidanceScale
@@ -275,7 +283,9 @@
         if (lastBlob) URL.revokeObjectURL(player.src);
         lastBlob = encodeWav(samples, samplingRate);
         player.src = URL.createObjectURL(lastBlob);
-        player.play().catch(() => {});
+        player.play().catch((error) => {
+          console.warn('Autoplay blocked or playback failed.', error);
+        });
 
         setStatus(`Done. Generated ${durationSeconds}s at ${samplingRate} Hz.`);
         downloadBtn.disabled = false;
@@ -296,7 +306,7 @@
       document.body.appendChild(link);
       link.click();
       link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
     });
   </script>
 </body>
