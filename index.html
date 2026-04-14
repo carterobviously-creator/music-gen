@@ -223,7 +223,7 @@
     }
 
     function buildSegmentPrompt(basePrompt, segmentIndex, totalSegments) {
-      return `${basePrompt}. segment ${segmentIndex + 1} of ${totalSegments}. Continue same style and key with subtle variation.`;
+      return `${basePrompt}. Segment ${segmentIndex + 1} of ${totalSegments}. Continue same style and key with subtle variation.`;
     }
 
     function base64ToArrayBuffer(base64) {
@@ -233,7 +233,7 @@
 
     async function getAudioBufferFromResponse(response, endpointType) {
       const ct = (response.headers.get('content-type') || '').toLowerCase();
-      // POST/openai returns JSON with base64 data; GET endpoints usually return raw audio bytes.
+      // post-openai returns JSON with base64 data; GET endpoints usually return raw audio bytes.
       if (endpointType === 'post-openai' || ct.includes('application/json') || ct.includes('text/plain')) {
         const data = await response.json();
         const b64 = data?.choices?.[0]?.message?.audio?.data || data?.audio?.data || data?.data;
@@ -284,8 +284,10 @@
         for (let ch = 0; ch < channelCount; ch += 1) {
           const target = out.getChannelData(ch);
           // When the target has more channels than the source buffer, reuse the source's last channel.
-          const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
-          target.set(src, offset);
+          if (b.numberOfChannels > 0) {
+            const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
+            target.set(src, offset);
+          }
         }
         offset += b.length;
       }
@@ -364,7 +366,7 @@
         state.fullBuffer = createProceduralFallback(totalSeconds, bpm);
         setProgress(100);
         console.warn('Pollinations endpoints failed; fallback enabled:', err);
-        showError('Pollinations service is currently unavailable. Using local fallback audio generation.', generateSong);
+        showError('Pollinations service is currently unavailable; using local fallback audio generation instead.', generateSong);
       } finally {
         $('generateBtn').disabled = false;
       }
@@ -488,11 +490,11 @@
       const out = new ArrayBuffer(44 + dataSize);
       const view = new DataView(out);
 
-      const writeStr = (offset, s) => { for (let i = 0; i < s.length; i += 1) view.setUint8(offset + i, s.charCodeAt(i)); };
-      writeStr(0, 'RIFF');
+      const writeString = (offset, s) => { for (let i = 0; i < s.length; i += 1) view.setUint8(offset + i, s.charCodeAt(i)); };
+      writeString(0, 'RIFF');
       view.setUint32(4, 36 + dataSize, true);
-      writeStr(8, 'WAVE');
-      writeStr(12, 'fmt ');
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
       view.setUint32(16, 16, true);
       view.setUint16(20, format, true);
       view.setUint16(22, numChannels, true);
@@ -500,7 +502,7 @@
       view.setUint32(28, byteRate, true);
       view.setUint16(32, blockAlign, true);
       view.setUint16(34, bitDepth, true);
-      writeStr(36, 'data');
+      writeString(36, 'data');
       view.setUint32(40, dataSize, true);
 
       let offset = 44;
