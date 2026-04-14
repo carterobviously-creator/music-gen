@@ -105,9 +105,12 @@
     .ok { color: var(--ok); }
     @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/es6/core.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/es6/music_rnn.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/es6/music_vae.js"></script>
+  <!-- Magenta.js UMD bundle — exposes global `mm` object -->
+  <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/es6/magenta-music.min.js"></script>
+  <script>
+    // Alias in case CDN bundle uses a different global name
+    if (typeof mm === 'undefined' && typeof magenta !== 'undefined') { window.mm = magenta; }
+  </script>
 </head>
 <body>
   <main class="app">
@@ -311,6 +314,9 @@
     async function ensureModels() {
       if (state.models) return state.models;
       setLoading(true, 5, 'Preparing Magenta models...');
+      if (typeof mm === 'undefined' || !mm.MusicRNN) {
+        throw new Error('Magenta.js failed to load from CDN. Please refresh the page and try again.');
+      }
       const melodyRnn = new mm.MusicRNN(CHECKPOINTS.melody);
       const drumsRnn = new mm.MusicRNN(CHECKPOINTS.drums);
       const vae = new mm.MusicVAE(CHECKPOINTS.vae);
@@ -410,7 +416,6 @@
     async function generateSequence(parsed) {
       const { melodyRnn, drumsRnn, vae } = await ensureModels();
       const stepsPerBar = 16;
-      // Convert minutes -> beats, then beats -> quantized steps (4 quantized steps per beat).
       const targetSteps = Math.max(stepsPerBar * 8, Math.ceil(parsed.minutes * parsed.bpm * (stepsPerBar / 4)));
       const chunkBars = 8;
       const chunkSteps = chunkBars * stepsPerBar;
@@ -419,7 +424,6 @@
       let melody = makeSeed(parsed.program);
 
       const drumSeed = makeDrumSeed();
-      // Add 64 continuation steps (4 more bars; 5 bars total with seed) for steadier rhythmic patterns.
       const drumContinuationSteps = 64;
       const drumTemperature = Math.max(0.7, parsed.temperature - 0.1);
       const drumPromise = drumsRnn.continueSequence(drumSeed, drumContinuationSteps, drumTemperature);
