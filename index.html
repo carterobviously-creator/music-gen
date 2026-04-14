@@ -188,11 +188,10 @@
     const MIN_SAFE_DURATION_MINUTES = 0.1;
     const SKIP_SECONDS = 15;
     const SEGMENT_BATCH_SIZE = 1;
-    const MAX_SEGMENT_BATCH_SIZE = 2;
     const MAX_RETRIES = 5;
     const FETCH_RETRIES_PER_DECODE_ATTEMPT = 3;
     const FETCH_TIMEOUT_MS = 45000;
-    const MIN_VALID_RESPONSE_BYTES = 1000;
+    const MIN_VALID_RESPONSE_BYTES = 1000; // Very small bodies are typically HTML/error responses, not playable audio.
     const FETCH_RETRY_MAX_DELAY_MS = 16000;
     const DECODE_RETRY_BASE_DELAY_MS = 2000;
     const TICK_INTERVAL_MS = 100;
@@ -328,7 +327,7 @@
     async function fetchAndDecodeSegment(ctx, url, maxRetries = MAX_RETRIES, onRetry) {
       for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
         try {
-          const arrayBuffer = await fetchWithRetry(url, Math.min(FETCH_RETRIES_PER_DECODE_ATTEMPT, maxRetries), () => {});
+          const arrayBuffer = await fetchWithRetry(url, Math.min(FETCH_RETRIES_PER_DECODE_ATTEMPT, maxRetries));
           const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
           return audioBuffer;
         } catch (err) {
@@ -355,10 +354,10 @@
       const started = performance.now();
       let processed = 0;
       let failed = 0;
-      const fetchWidth = Math.max(1, Math.min(MAX_SEGMENT_BATCH_SIZE, SEGMENT_BATCH_SIZE));
+      const batchSize = SEGMENT_BATCH_SIZE === 2 ? 2 : 1;
 
-      for (let batchStart = 0; batchStart < segmentCount; batchStart += fetchWidth) {
-        const batchEnd = Math.min(segmentCount, batchStart + fetchWidth);
+      for (let batchStart = 0; batchStart < segmentCount; batchStart += batchSize) {
+        const batchEnd = Math.min(segmentCount, batchStart + batchSize);
         const jobs = [];
         for (let i = batchStart; i < batchEnd; i += 1) {
           jobs.push((async () => {
