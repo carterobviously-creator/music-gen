@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Music Generator</title>
+  <title>Pollinations AI Music Generator</title>
   <style>
     :root {
       --bg: #0a0a18;
-      --panel: #111126;
-      --panel-2: #171736;
-      --text: #e9e9ff;
+      --panel: #13132a;
+      --panel2: #1a1a38;
+      --text: #eef0ff;
       --muted: #9ca3bf;
       --purple: #a855f7;
       --cyan: #22d3ee;
@@ -21,287 +21,173 @@
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: radial-gradient(circle at 20% 0%, #1d1740 0%, var(--bg) 50%) fixed;
       color: var(--text);
+      background: radial-gradient(circle at 25% 0%, #22164d 0%, var(--bg) 45%) fixed;
+      min-height: 100vh;
+      padding: 16px;
     }
-    .app {
-      width: min(1100px, 94vw);
-      margin: 0 auto;
-      padding: 1.2rem 0 2rem;
-    }
+    .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
     .card {
-      background: linear-gradient(180deg, rgba(168,85,247,0.08), rgba(34,211,238,0.04));
-      border: 1px solid rgba(168,85,247,0.28);
-      border-radius: 16px;
-      padding: 1rem;
-      margin-top: 1rem;
+      background: linear-gradient(180deg, rgba(168,85,247,0.07), rgba(34,211,238,0.04)), var(--panel);
+      border: 1px solid rgba(168,85,247,.25);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 12px 35px rgba(0,0,0,.4);
     }
-    h1 { margin: 0; font-size: clamp(1.4rem, 3.5vw, 2rem); }
-    .tagline { margin: .3rem 0 0; color: var(--muted); }
+    h1 { margin: 0 0 6px; font-size: clamp(1.4rem, 3vw, 2rem); }
+    .sub { color: var(--muted); margin: 0 0 10px; }
     textarea {
-      width: 100%;
-      min-height: 120px;
-      padding: .9rem;
-      resize: vertical;
-      border-radius: 12px;
-      border: 1px solid rgba(34,211,238,0.35);
-      background: #0c0c1f;
-      color: var(--text);
-      font-size: 1rem;
-      outline: none;
+      width: 100%; min-height: 140px; resize: vertical; border-radius: 10px;
+      border: 1px solid rgba(34,211,238,.45); background: var(--panel2); color: var(--text);
+      padding: 12px; font: inherit;
     }
-    textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(168,85,247,0.25); }
-    .row { display: flex; gap: .7rem; flex-wrap: wrap; align-items: center; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .chip {
+      border: 1px solid rgba(236,72,153,.45); color: #ffd6ef; background: rgba(236,72,153,.1);
+      border-radius: 999px; padding: 7px 10px; cursor: pointer; font-size: .85rem;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     button {
-      border: none;
-      background: linear-gradient(90deg, var(--purple), var(--pink));
-      color: white;
-      border-radius: 10px;
-      padding: .65rem .95rem;
-      font-weight: 600;
-      cursor: pointer;
+      border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
+      background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; font-weight: 700;
     }
-    button.ghost { background: #1f1f3f; border: 1px solid rgba(255,255,255,.14); }
+    button.ghost { background: #202047; border: 1px solid rgba(34,211,238,.4); }
     button:disabled { opacity: .5; cursor: not-allowed; }
-    .chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
-    .chip { padding: .45rem .65rem; border-radius: 999px; background: #19193a; border: 1px solid rgba(236,72,153,.35); font-size: .86rem; cursor: pointer; }
-    .understood { margin-top: .7rem; padding: .65rem .75rem; border-radius: 10px; border: 1px solid rgba(34,211,238,.3); background: rgba(34,211,238,.08); }
-    .loading { margin-top: .7rem; display: none; }
-    .bar { height: 8px; border-radius: 999px; background: #212145; overflow: hidden; }
-    .bar > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
-    .small { color: var(--muted); font-size: .87rem; }
-    canvas {
-      width: 100%;
-      height: 180px;
-      background: #0b0b1d;
-      border: 1px solid rgba(34,211,238,.35);
-      border-radius: 12px;
-      margin-top: .8rem;
-      display: block;
+    .meta {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;
+      margin-top: 10px;
     }
-    .progressWrap { margin-top: .7rem; }
-    input[type="range"] { width: 100%; }
-    .grid { display: grid; gap: .7rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    label { display: block; font-size: .85rem; color: var(--muted); }
-    input[type="number"] {
-      width: 100%;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.16);
-      padding: .45rem;
-      background: #10102a;
-      color: var(--text);
-    }
-    details { margin-top: .8rem; }
-    details > summary { cursor: pointer; color: var(--cyan); }
+    .pill { background: #1d1d3e; border-radius: 9px; padding: 8px 10px; color: #cfd2ff; font-size: .9rem; }
+    .status { margin-top: 10px; color: var(--cyan); min-height: 1.3em; }
+    .status.ok { color: var(--ok); }
     .error {
-      margin-top: .7rem;
-      display: none;
-      border: 1px solid rgba(248,113,113,.5);
-      background: rgba(248,113,113,.09);
-      padding: .65rem;
-      border-radius: 10px;
-      color: #ffd1d1;
+      display: none; margin-top: 10px; color: #ffd9d9; background: rgba(248,113,113,.12);
+      border: 1px solid rgba(248,113,113,.55); border-radius: 9px; padding: 9px;
     }
-    .ok { color: var(--ok); }
-    @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+    .progressOuter { margin-top: 10px; background: #11112a; border-radius: 999px; height: 10px; overflow: hidden; }
+    .progressInner {
+      height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
+      transition: width .15s linear;
+    }
+    canvas {
+      width: 100%; height: 170px; border-radius: 10px; margin-top: 10px;
+      border: 1px solid rgba(34,211,238,.4); background: #0a0a16;
+    }
+    @media (max-width: 600px) { body { padding: 10px; } .card { padding: 12px; } }
   </style>
-  <!-- Magenta.js UMD bundle — exposes global `mm` object -->
-  <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/es6/magenta-music.min.js"></script>
-  <script>
-    // Alias in case CDN bundle uses a different global name
-    if (typeof mm === 'undefined' && typeof magenta !== 'undefined') { window.mm = magenta; }
-  </script>
 </head>
 <body>
-  <main class="app">
+  <main class="wrap">
     <section class="card">
-      <h1>🎵 AI Prompt Music Generator</h1>
-      <p class="tagline">Describe your track in natural language. Real Magenta.js AI runs in-browser with no API keys.</p>
-
-      <textarea id="promptInput" placeholder="Example: a chill lo-fi hip hop beat at 80 BPM for studying, 15 minutes long"></textarea>
-      <div class="row" style="margin-top:.7rem;">
-        <button id="generateBtn">Generate</button>
+      <h1>🎵 Pollinations AI Music Generator</h1>
+      <p class="sub">Real AI generation in-browser (no API keys). For long songs, it generates multiple AI segments and stitches them into one buffer.</p>
+      <textarea id="prompt" placeholder="Example: a chill lo-fi hip hop beat at 80 BPM, 10 minutes long, relaxing"></textarea>
+      <div class="chips" id="chips"></div>
+      <div class="row">
+        <button id="generateBtn">Generate Music</button>
         <button id="playBtn" class="ghost" disabled>Play</button>
         <button id="pauseBtn" class="ghost" disabled>Pause</button>
         <button id="stopBtn" class="ghost" disabled>Stop</button>
         <button id="downloadBtn" class="ghost" disabled>Download WAV</button>
       </div>
-
-      <div class="chips" id="chips"></div>
-      <div class="understood" id="understood">🎵 AI understood: Waiting for your prompt...</div>
-
-      <div class="loading" id="loadingBox">
-        <div class="small" id="loadingText">Loading models...</div>
-        <div class="bar"><span id="loadingBar"></span></div>
+      <div class="meta">
+        <div class="pill" id="endpointInfo">Endpoint: pending</div>
+        <div class="pill" id="durationInfo">Duration target: pending</div>
+        <div class="pill" id="modeInfo">Mode: waiting</div>
       </div>
-
+      <div class="status" id="status">Ready.</div>
+      <div class="progressOuter"><div class="progressInner" id="progress"></div></div>
       <div class="error" id="errorBox">
-        <div id="errorText">Generation failed.</div>
-        <div style="margin-top:.45rem;"><button id="retryBtn" class="ghost">Retry</button></div>
+        <div id="errorText"></div>
+        <div style="margin-top:8px;"><button id="retryBtn" class="ghost">Retry</button></div>
       </div>
+    </section>
 
-      <canvas id="visualizer" width="1000" height="260"></canvas>
-      <div class="progressWrap">
-        <label for="playbackProgress">Playback Progress</label>
-        <input id="playbackProgress" type="range" min="0" max="100" value="0" disabled />
-        <div class="small" id="statusText">Idle</div>
-      </div>
-
-      <details>
-        <summary>Advanced</summary>
-        <div class="grid" style="margin-top:.6rem;">
-          <div>
-            <label for="tempSlider">Temperature: <span id="tempOut">1.0</span></label>
-            <input id="tempSlider" type="range" min="0.6" max="1.6" step="0.05" value="1.0" />
-          </div>
-          <div>
-            <label for="bpmOverride">BPM override (optional)</label>
-            <input id="bpmOverride" type="number" min="40" max="220" placeholder="Auto from prompt" />
-          </div>
-          <div>
-            <label for="durationOverride">Duration override minutes (1-60)</label>
-            <input id="durationOverride" type="number" min="1" max="60" placeholder="Auto from prompt" />
-          </div>
-          <div>
-            <label for="fxWet">FX Wet Mix: <span id="fxOut">0.25</span></label>
-            <input id="fxWet" type="range" min="0" max="0.7" step="0.01" value="0.25" />
-          </div>
-          <div>
-            <label for="melodyVol">Melody Volume: <span id="melodyVolOut">0.9</span></label>
-            <input id="melodyVol" type="range" min="0" max="1" step="0.01" value="0.9" />
-          </div>
-          <div>
-            <label for="drumsVol">Drums Volume: <span id="drumsVolOut">0.8</span></label>
-            <input id="drumsVol" type="range" min="0" max="1" step="0.01" value="0.8" />
-          </div>
-        </div>
-      </details>
+    <section class="card">
+      <h2 style="margin:0 0 8px;">Visualizer & Playback</h2>
+      <canvas id="viz" width="960" height="260"></canvas>
+      <div class="status" id="playbackStatus">Playback: stopped</div>
+      <div class="progressOuter"><div class="progressInner" id="playbackProgress"></div></div>
     </section>
   </main>
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-    const FX_FILTER_CUTOFF_HZ = 9000;
-    const DRUM_DECAY_RATE = 8;
-    const DEFAULT_NOTE_DURATION = 0.2;
-    const CHECKPOINTS = {
-      melody: 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn',
-      drums: 'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/drum_kit_rnn',
-      vae: 'https://storage.googleapis.com/magentadata/js/checkpoints/music_vae/mel_4bar_small_q2'
-    };
 
-    const chips = [
-      'dreamy ambient synth, 20 minutes, slow and relaxing',
-      'upbeat electronic dance track, 140 BPM, 10 minutes',
-      'sad piano jazz ballad, 70 BPM, 15 minutes',
-      'epic orchestral cinematic music, 12 minutes',
-      'a chill lo-fi hip hop beat at 80 BPM for studying, 15 minutes long'
+    const EXAMPLES = [
+      'a chill lo-fi hip hop beat at 80 BPM, 10 minutes long, relaxing',
+      'cinematic ambient soundtrack, 15 min, evolving and emotional',
+      'upbeat synthwave track 120 bpm, 12 minutes, neon city night drive',
+      'deep focus piano and soft strings, 20 minutes, calm and minimal'
     ];
 
-    const keywordProfiles = [
-      { keys: ['lo-fi', 'lofi', 'chill', 'study'], genre: 'Lo-Fi', mood: 'Relaxed', temp: 0.95, program: 4 },
-      { keys: ['ambient', 'dreamy', 'relaxing', 'calm'], genre: 'Ambient', mood: 'Calm', temp: 0.85, program: 88 },
-      { keys: ['upbeat', 'dance', 'edm', 'electronic'], genre: 'Electronic', mood: 'Energetic', temp: 1.2, program: 81 },
-      { keys: ['jazz', 'ballad', 'piano'], genre: 'Jazz', mood: 'Emotional', temp: 0.9, program: 0 },
-      { keys: ['sad', 'dark'], genre: 'Cinematic', mood: 'Dark', temp: 0.8, program: 48 },
-      { keys: ['epic', 'orchestral', 'cinematic'], genre: 'Orchestral', mood: 'Epic', temp: 1.05, program: 48 },
-      { keys: ['hip hop', 'hip-hop'], genre: 'Hip-Hop', mood: 'Groovy', temp: 1.0, program: 32 }
+    const ENDPOINTS = [
+      {
+        name: 'Pollinations OpenAI POST',
+        type: 'post-openai',
+        model: 'openai-audio',
+        buildRequest: (prompt) => ({
+          url: 'https://text.pollinations.ai/openai',
+          options: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'openai-audio',
+              modalities: ['text', 'audio'],
+              audio: { voice: 'alloy', format: 'wav' },
+              messages: [{ role: 'user', content: prompt }]
+            })
+          }
+        })
+      },
+      {
+        name: 'Pollinations Text GET',
+        type: 'get-text',
+        model: 'openai-audio',
+        buildRequest: (prompt) => ({
+          url: `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai-audio&voice=alloy`,
+          options: { method: 'GET' }
+        })
+      },
+      {
+        name: 'Pollinations Audio GET',
+        type: 'get-audio',
+        model: 'audio.pollinations.ai',
+        buildRequest: (prompt) => ({
+          url: `https://audio.pollinations.ai/${encodeURIComponent(prompt)}`,
+          options: { method: 'GET' }
+        })
+      }
     ];
 
     const state = {
-      models: null,
-      currentPrompt: '',
-      parsed: null,
-      sequence: null,
-      fullSeconds: 0,
-      playStart: 0,
-      pausedMs: 0,
-      player: null,
-      fxCtx: null,
-      fx: null,
+      audioCtx: null,
       analyser: null,
+      source: null,
+      fullBuffer: null,
+      endpointUsed: 'none',
+      playbackStartTime: 0,
+      pausedAt: 0,
       raf: 0,
       retryFn: null
     };
 
-    function midiToFreq(pitch) {
-      return 440 * Math.pow(2, ((pitch || 60) - 69) / 12);
-    }
-    state.liveLevels = {
-      melody: Number($('melodyVol').value),
-      drums: Number($('drumsVol').value)
-    };
-
-    function updateSliderOut(id, outId) {
-      $(outId).textContent = $(id).value;
+    function setStatus(text, ok = false) {
+      const el = $('status');
+      el.textContent = text;
+      el.classList.toggle('ok', !!ok);
     }
 
-    [['tempSlider', 'tempOut'], ['fxWet', 'fxOut'], ['melodyVol', 'melodyVolOut'], ['drumsVol', 'drumsVolOut']]
-      .forEach(([a, b]) => {
-        $(a).addEventListener('input', () => updateSliderOut(a, b));
-        updateSliderOut(a, b);
-      });
-    $('melodyVol').addEventListener('input', () => { state.liveLevels.melody = Number($('melodyVol').value); });
-    $('drumsVol').addEventListener('input', () => { state.liveLevels.drums = Number($('drumsVol').value); });
-
-    function renderChips() {
-      const el = $('chips');
-      chips.forEach((c) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chip';
-        btn.textContent = c;
-        btn.addEventListener('click', () => { $('promptInput').value = c; $('promptInput').focus(); });
-        el.appendChild(btn);
-      });
+    function setProgress(percent) {
+      $('progress').style.width = `${Math.max(0, Math.min(100, percent))}%`;
     }
 
-    function parsePrompt(text) {
-      const lower = (text || '').toLowerCase();
-      const bpmMatch = lower.match(/(\d{1,3})(?:\s*)(?:bpm|tempo)/i);
-      let bpm = bpmMatch ? clamp(Number(bpmMatch[1]), 40, 220) : null;
-
-      let minutes = null;
-      const minMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/i);
-      const hrMatch = lower.match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i);
-      if (minMatch) minutes = clamp(Math.round(Number(minMatch[1])), 1, 60);
-      else if (hrMatch) minutes = clamp(Math.round(Number(hrMatch[1]) * 60), 1, 60);
-
-      let profile = keywordProfiles.find((p) => p.keys.some((k) => lower.includes(k.toLowerCase())));
-      if (!profile) profile = { genre: 'Hybrid', mood: 'Balanced', temp: 1.0, program: 0 };
-
-      if (bpm == null) {
-        const defaultBpmByGenre = { Electronic: 128, 'Lo-Fi': 82, Ambient: 72 };
-        bpm = defaultBpmByGenre[profile.genre] || 100;
-      }
-      if (minutes == null) minutes = 10;
-
-      const bpmOverride = Number($('bpmOverride').value);
-      const durationOverride = Number($('durationOverride').value);
-      const temp = clamp(Number($('tempSlider').value) || profile.temp, 0.6, 1.6);
-
-      const parsed = {
-        genre: profile.genre,
-        mood: profile.mood,
-        bpm: Number.isFinite(bpmOverride) && bpmOverride > 0 ? clamp(Math.round(bpmOverride), 40, 220) : bpm,
-        minutes: Number.isFinite(durationOverride) && durationOverride > 0 ? clamp(Math.round(durationOverride), 1, 60) : minutes,
-        temperature: temp,
-        program: profile.program
-      };
-
-      $('understood').textContent = `🎵 Generating: ${parsed.genre} | ${parsed.bpm} BPM | ${parsed.minutes} min | ${parsed.mood}`;
-      return parsed;
+    function setPlaybackProgress(percent) {
+      $('playbackProgress').style.width = `${Math.max(0, Math.min(100, percent))}%`;
     }
 
-    function setLoading(show, pct = 0, text = '') {
-      $('loadingBox').style.display = show ? 'block' : 'none';
-      $('loadingBar').style.width = `${clamp(pct, 0, 100)}%`;
-      if (text) $('loadingText').textContent = text;
-    }
-
-    function showError(msg, retryFn) {
-      $('errorText').textContent = msg;
+    function showError(message, retryFn = null) {
+      $('errorText').textContent = message;
       $('errorBox').style.display = 'block';
       state.retryFn = retryFn;
     }
@@ -311,483 +197,348 @@
       state.retryFn = null;
     }
 
-    async function ensureModels() {
-      if (state.models) return state.models;
-      setLoading(true, 5, 'Preparing Magenta models...');
-      if (typeof mm === 'undefined' || !mm.MusicRNN) {
-        throw new Error('Magenta.js failed to load from CDN. Please refresh the page and try again.');
+    function parseDurationMinutes(prompt) {
+      const text = prompt.toLowerCase();
+      const mins = text.match(/(\d+(?:\.\d+)?)\s*(minutes|minute|mins|min)\b/);
+      if (mins) return Math.max(1, Number(mins[1]));
+      const hrs = text.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr)\b/);
+      if (hrs) return Math.max(1, Number(hrs[1]) * 60);
+      return 3;
+    }
+
+    function parseBpm(prompt) {
+      const bpm = prompt.toLowerCase().match(/(\d{2,3})\s*bpm\b/);
+      if (bpm) return Math.max(50, Math.min(200, Number(bpm[1])));
+      return 90;
+    }
+
+    function buildSegmentPrompt(basePrompt, segmentIndex, totalSegments) {
+      return `${basePrompt}. segment ${segmentIndex + 1} of ${totalSegments}. continue same style and key with subtle variation.`;
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    async function getAudioBufferFromResponse(response, endpointType) {
+      const ct = (response.headers.get('content-type') || '').toLowerCase();
+      if (endpointType === 'post-openai' || ct.includes('application/json') || ct.includes('text/plain')) {
+        const data = await response.json();
+        const b64 = data?.choices?.[0]?.message?.audio?.data || data?.audio?.data || data?.data;
+        if (!b64 || typeof b64 !== 'string') throw new Error('No base64 audio returned');
+        return base64ToArrayBuffer(b64);
       }
-      const melodyRnn = new mm.MusicRNN(CHECKPOINTS.melody);
-      const drumsRnn = new mm.MusicRNN(CHECKPOINTS.drums);
-      const vae = new mm.MusicVAE(CHECKPOINTS.vae);
-      setLoading(true, 20, 'Downloading melody model...');
-      await melodyRnn.initialize();
-      setLoading(true, 48, 'Downloading drums model...');
-      await drumsRnn.initialize();
-      setLoading(true, 75, 'Downloading VAE model...');
-      await vae.initialize();
-      state.models = { melodyRnn, drumsRnn, vae };
-      setLoading(true, 100, 'Models ready');
-      return state.models;
+      return await response.arrayBuffer();
     }
 
-    function makeSeed(program = 0) {
-      return {
-        ticksPerQuarter: 220,
-        quantizationInfo: { stepsPerQuarter: 4 },
-        tempos: [{ qpm: 100 }],
-        totalQuantizedSteps: 16,
-        notes: [
-          { pitch: 60, quantizedStartStep: 0, quantizedEndStep: 4, velocity: 95, program },
-          { pitch: 64, quantizedStartStep: 4, quantizedEndStep: 8, velocity: 95, program },
-          { pitch: 67, quantizedStartStep: 8, quantizedEndStep: 12, velocity: 95, program },
-          { pitch: 72, quantizedStartStep: 12, quantizedEndStep: 16, velocity: 100, program }
-        ]
-      };
+    async function fetchOnePollinationsSegment(prompt) {
+      const failures = [];
+      for (const endpoint of ENDPOINTS) {
+        try {
+          const req = endpoint.buildRequest(prompt);
+          const response = await fetch(req.url, req.options);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const audioData = await getAudioBufferFromResponse(response, endpoint.type);
+          state.endpointUsed = `${endpoint.name} (${endpoint.model})`;
+          $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
+          return audioData;
+        } catch (err) {
+          failures.push(`${endpoint.name}: ${err.message}`);
+        }
+      }
+      throw new Error(`All Pollinations endpoints failed. ${failures.join(' | ')}`);
     }
 
-    function makeDrumSeed() {
-      return {
-        ticksPerQuarter: 220,
-        quantizationInfo: { stepsPerQuarter: 4 },
-        tempos: [{ qpm: 100 }],
-        totalQuantizedSteps: 16,
-        notes: [
-          { pitch: 36, quantizedStartStep: 0, quantizedEndStep: 1, velocity: 105, isDrum: true },
-          { pitch: 42, quantizedStartStep: 2, quantizedEndStep: 3, velocity: 70, isDrum: true },
-          { pitch: 38, quantizedStartStep: 4, quantizedEndStep: 5, velocity: 95, isDrum: true },
-          { pitch: 42, quantizedStartStep: 6, quantizedEndStep: 7, velocity: 70, isDrum: true },
-          { pitch: 36, quantizedStartStep: 8, quantizedEndStep: 9, velocity: 100, isDrum: true },
-          { pitch: 46, quantizedStartStep: 10, quantizedEndStep: 11, velocity: 72, isDrum: true },
-          { pitch: 38, quantizedStartStep: 12, quantizedEndStep: 13, velocity: 100, isDrum: true },
-          { pitch: 42, quantizedStartStep: 14, quantizedEndStep: 15, velocity: 72, isDrum: true }
-        ]
-      };
+    function ensureAudioCtx() {
+      if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return state.audioCtx;
     }
 
-    function appendQuantized(base, part) {
-      const offset = base.totalQuantizedSteps || 0;
-      const notes = (part.notes || []).map((n) => ({
-        ...n,
-        quantizedStartStep: n.quantizedStartStep + offset,
-        quantizedEndStep: n.quantizedEndStep + offset
-      }));
-      base.notes.push(...notes);
-      base.totalQuantizedSteps = offset + (part.totalQuantizedSteps || 0);
-      return base;
+    async function decodeAudio(arrayBuffer) {
+      const ctx = ensureAudioCtx();
+      const cloned = arrayBuffer.slice(0);
+      return await ctx.decodeAudioData(cloned);
     }
 
-    function repeatToLength(pattern, targetSteps) {
-      const out = {
-        ticksPerQuarter: 220,
-        quantizationInfo: { stepsPerQuarter: 4 },
-        tempos: [{ qpm: 100 }],
-        totalQuantizedSteps: targetSteps,
-        notes: []
-      };
-      const block = Math.max(1, pattern.totalQuantizedSteps || 16);
-      for (let offset = 0; offset < targetSteps; offset += block) {
-        for (const n of (pattern.notes || [])) {
-          const s = n.quantizedStartStep + offset;
-          const e = n.quantizedEndStep + offset;
-          if (s >= targetSteps) continue;
-          out.notes.push({ ...n, quantizedStartStep: s, quantizedEndStep: Math.min(e, targetSteps) });
+    function concatAudioBuffers(buffers) {
+      if (!buffers.length) return null;
+      const sampleRate = buffers[0].sampleRate;
+      const channelCount = Math.max(...buffers.map((b) => b.numberOfChannels));
+      const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
+      const ctx = ensureAudioCtx();
+      const out = ctx.createBuffer(channelCount, totalLength, sampleRate);
+      let offset = 0;
+      for (const b of buffers) {
+        for (let ch = 0; ch < channelCount; ch += 1) {
+          const target = out.getChannelData(ch);
+          const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
+          target.set(src, offset);
+        }
+        offset += b.length;
+      }
+      return out;
+    }
+
+    function createProceduralFallback(seconds, bpm) {
+      const ctx = ensureAudioCtx();
+      const sr = ctx.sampleRate;
+      const length = Math.floor(seconds * sr);
+      const out = ctx.createBuffer(2, length, sr);
+      const beat = 60 / bpm;
+      const kickHz = 55;
+      const bassHz = 82.41;
+      for (let ch = 0; ch < 2; ch += 1) {
+        const data = out.getChannelData(ch);
+        for (let i = 0; i < length; i += 1) {
+          const t = i / sr;
+          const beatPos = (t % beat) / beat;
+          const barPos = (t % (beat * 4)) / (beat * 4);
+          const kickEnv = Math.exp(-beatPos * 16) * (beatPos < 0.22 ? 1 : 0);
+          const snareTrig = ((t + beat * 0.5) % beat) / beat;
+          const snareEnv = Math.exp(-snareTrig * 25) * (snareTrig < 0.12 ? 1 : 0);
+          const hat = ((Math.random() * 2 - 1) * 0.05) * (1 - ((t * 8) % 1));
+          const kick = Math.sin(2 * Math.PI * kickHz * t * (1 - beatPos * 0.6)) * kickEnv * 0.65;
+          const bass = Math.sin(2 * Math.PI * (bassHz + 24 * Math.sin(barPos * Math.PI * 2)) * t) * 0.22;
+          const pad = (Math.sin(2 * Math.PI * 220 * t) + Math.sin(2 * Math.PI * 330 * t)) * 0.08;
+          const snare = (Math.random() * 2 - 1) * snareEnv * 0.22;
+          data[i] = Math.max(-1, Math.min(1, kick + bass + pad + snare + hat));
         }
       }
       return out;
     }
 
-    function mergeNotes(...seqs) {
-      const merged = {
-        ticksPerQuarter: 220,
-        quantizationInfo: { stepsPerQuarter: 4 },
-        tempos: [{ qpm: 100 }],
-        totalQuantizedSteps: 0,
-        notes: []
-      };
-      for (const s of seqs) {
-        if (!s) continue;
-        merged.notes.push(...(s.notes || []));
-        merged.totalQuantizedSteps = Math.max(merged.totalQuantizedSteps, s.totalQuantizedSteps || 0);
-      }
-      return merged;
-    }
+    async function generateSong() {
+      clearError();
+      setPlaybackProgress(0);
+      const prompt = $('prompt').value.trim();
+      if (!prompt) return showError('Please enter a prompt.', null);
 
-    async function generateSequence(parsed) {
-      const { melodyRnn, drumsRnn, vae } = await ensureModels();
-      const stepsPerBar = 16;
-      const targetSteps = Math.max(stepsPerBar * 8, Math.ceil(parsed.minutes * parsed.bpm * (stepsPerBar / 4)));
-      const chunkBars = 8;
-      const chunkSteps = chunkBars * stepsPerBar;
+      const minutes = parseDurationMinutes(prompt);
+      const bpm = parseBpm(prompt);
+      const totalSeconds = Math.round(minutes * 60);
+      $('durationInfo').textContent = `Duration target: ~${minutes.toFixed(1)} min (${totalSeconds}s)`;
 
-      setLoading(true, 100, 'Generating AI melody and drums...');
-      let melody = makeSeed(parsed.program);
-
-      const drumSeed = makeDrumSeed();
-      const drumContinuationSteps = 64;
-      const drumTemperature = Math.max(0.7, parsed.temperature - 0.1);
-      const drumPromise = drumsRnn.continueSequence(drumSeed, drumContinuationSteps, drumTemperature);
-      const vaePromise = (async () => {
-        const samples = await vae.sample(2, parsed.temperature);
-        const blended = await vae.interpolate(samples, 5);
-        return blended[Math.floor(blended.length / 2)] || samples[0] || null;
-      })();
-
-      let generatedSteps = melody.totalQuantizedSteps;
-      let loops = 0;
-      while (generatedSteps < targetSteps) {
-        loops += 1;
-        const stepsNow = Math.min(chunkSteps, targetSteps - generatedSteps);
-        const continuation = await melodyRnn.continueSequence(melody, stepsNow, parsed.temperature);
-        appendQuantized(melody, continuation);
-        generatedSteps = melody.totalQuantizedSteps;
-        const pct = Math.floor((generatedSteps / targetSteps) * 100);
-        setLoading(true, 100, `Generating phrase ${loops} (${pct}%)...`);
-      }
-
-      const [drumPattern, vaePhrase] = await Promise.all([drumPromise, vaePromise]);
-      const drums = repeatToLength(drumPattern, targetSteps);
-
-      let vaeLayer = null;
-      if (vaePhrase && vaePhrase.notes.length) {
-        const phrase = {
-          ticksPerQuarter: 220,
-          quantizationInfo: { stepsPerQuarter: 4 },
-          tempos: [{ qpm: 100 }],
-          totalQuantizedSteps: vaePhrase.totalQuantizedSteps || 16,
-          notes: vaePhrase.notes.map((n) => ({
-            ...n,
-            program: parsed.program,
-            velocity: Math.min(110, (n.velocity || 80) + 6)
-          }))
-        };
-        vaeLayer = repeatToLength(phrase, targetSteps);
-      }
-
-      const quantized = mergeNotes(melody, drums, vaeLayer);
-      quantized.tempos = [{ qpm: parsed.bpm }];
-      const unquantized = mm.sequences.unquantizeSequence(quantized, parsed.bpm);
-      state.fullSeconds = parsed.minutes * 60;
-      return unquantized;
-    }
-
-    function createReverbImpulseBuffer(ctx, seconds = 1.6) {
-      const len = Math.floor(ctx.sampleRate * seconds);
-      const buffer = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (let c = 0; c < 2; c++) {
-        const data = buffer.getChannelData(c);
-        for (let i = 0; i < len; i++) {
-          const decay = Math.pow(1 - i / len, 1.8);
-          data[i] = (Math.random() * 2 - 1) * decay;
-        }
-      }
-      return buffer;
-    }
-
-    function ensureFx() {
-      if (state.fxCtx) return;
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const input = ctx.createGain();
-      const dry = ctx.createGain();
-      const wet = ctx.createGain();
-      const convolver = ctx.createConvolver();
-      convolver.buffer = createReverbImpulseBuffer(ctx, 1.8);
-      const delay = ctx.createDelay(1.0);
-      delay.delayTime.value = 0.25;
-      const feedback = ctx.createGain();
-      feedback.gain.value = 0.25;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = FX_FILTER_CUTOFF_HZ;
-      const comp = ctx.createDynamicsCompressor();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 1024;
-
-      input.connect(dry);
-      input.connect(convolver);
-      convolver.connect(delay);
-      delay.connect(feedback);
-      feedback.connect(delay);
-      delay.connect(wet);
-      dry.connect(filter);
-      wet.connect(filter);
-      filter.connect(comp);
-      comp.connect(analyser);
-      analyser.connect(ctx.destination);
-
-      state.fxCtx = ctx;
-      state.fx = { input, dry, wet };
-      state.analyser = analyser;
-      setWetMix(Number($('fxWet').value));
-    }
-
-    function setWetMix(v) {
-      if (!state.fx) return;
-      const wet = clamp(v, 0, 0.7);
-      state.fx.wet.gain.value = wet;
-      state.fx.dry.gain.value = 1 - wet * 0.9;
-    }
-
-    function triggerFxLayer(note) {
-      if (!state.fxCtx || !state.fx || !note) return;
-      const t = state.fxCtx.currentTime;
-      const noteStart = note.startTime ?? 0;
-      const noteEnd = note.endTime ?? (noteStart + DEFAULT_NOTE_DURATION);
-      const dur = clamp(noteEnd - noteStart, 0.05, 1.8);
-
-      if (note.isDrum) {
-        const noise = state.fxCtx.createBufferSource();
-        const b = state.fxCtx.createBuffer(1, Math.floor(state.fxCtx.sampleRate * 0.08), state.fxCtx.sampleRate);
-        const d = b.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * DRUM_DECAY_RATE);
-        noise.buffer = b;
-        const g = state.fxCtx.createGain();
-        g.gain.value = state.liveLevels.drums * 0.45;
-        noise.connect(g);
-        g.connect(state.fx.input);
-        noise.start(t);
-        noise.stop(t + 0.08);
-        return;
-      }
-
-      const freq = midiToFreq(note.pitch || 60);
-      const osc = state.fxCtx.createOscillator();
-      const gain = state.fxCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, state.liveLevels.melody * 0.14), t + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      osc.connect(gain);
-      gain.connect(state.fx.input);
-      osc.start(t);
-      osc.stop(t + dur + 0.02);
-    }
-
-    function buildPlayer() {
-      if (!state.player) {
-        state.player = new mm.Player(false, {
-          run: (note) => triggerFxLayer(note),
-          stop: () => {
-            $('statusText').textContent = 'Playback finished';
-            $('playBtn').disabled = false;
-            $('pauseBtn').disabled = true;
-            $('stopBtn').disabled = true;
-            state.pausedMs = 0;
-          }
-        });
-      }
-      return state.player;
-    }
-
-    function updatePlaybackUi() {
-      if (!state.sequence || !state.playStart) return;
-      const elapsed = state.pausedMs || Math.max(0, (performance.now() - state.playStart) / 1000);
-      const pct = clamp((elapsed / (state.fullSeconds || 1)) * 100, 0, 100);
-      $('playbackProgress').value = String(pct);
-      $('statusText').textContent = `Playing ${elapsed.toFixed(1)}s / ${(state.fullSeconds || 0).toFixed(1)}s`;
-      if (state.player?.isPlaying()) state.raf = requestAnimationFrame(updatePlaybackUi);
-    }
-
-    function stopPlayback() {
-      if (state.player) state.player.stop();
-      state.playStart = 0;
-      state.pausedMs = 0;
-      $('playbackProgress').value = '0';
-      $('statusText').textContent = 'Stopped';
-      $('playBtn').disabled = false;
+      $('generateBtn').disabled = true;
+      $('playBtn').disabled = true;
       $('pauseBtn').disabled = true;
       $('stopBtn').disabled = true;
-      cancelAnimationFrame(state.raf);
-    }
+      $('downloadBtn').disabled = true;
 
-    async function playSequence(fromSec = 0) {
-      if (!state.sequence) return;
-      ensureFx();
-      const player = buildPlayer();
-      const seq = fromSec > 0 ? mm.sequences.trim(state.sequence, fromSec, state.fullSeconds) : state.sequence;
-      state.playStart = performance.now() - fromSec * 1000;
-      state.pausedMs = 0;
-      $('playBtn').disabled = true;
-      $('pauseBtn').disabled = false;
-      $('stopBtn').disabled = false;
-      $('playbackProgress').disabled = false;
-      $('statusText').textContent = 'Starting playback...';
-      await player.start(seq);
-      updatePlaybackUi();
-    }
+      const segmentSeconds = 45;
+      const segmentsNeeded = Math.max(1, Math.ceil(totalSeconds / segmentSeconds));
+      const decoded = [];
 
-    function drawVisualizer() {
-      const c = $('visualizer');
-      const g = c.getContext('2d');
-      const w = c.width, h = c.height;
-      const render = () => {
-        g.fillStyle = '#0b0b1d';
-        g.fillRect(0, 0, w, h);
-        if (state.analyser) {
-          const data = new Uint8Array(state.analyser.frequencyBinCount);
-          state.analyser.getByteFrequencyData(data);
-          const step = Math.max(1, Math.floor(data.length / w));
-          for (let x = 0; x < w; x++) {
-            const v = data[Math.min(data.length - 1, x * step)] / 255;
-            const bar = v * (h - 10);
-            g.fillStyle = `hsl(${280 - v * 120} 100% ${45 + v * 20}%)`;
-            g.fillRect(x, h - bar, 1, bar);
-          }
-        }
-        requestAnimationFrame(render);
-      };
-      render();
-    }
-
-    function encodeWav(samples, sampleRate) {
-      const b = new ArrayBuffer(44 + samples.length * 2);
-      const dataView = new DataView(b);
-      const write = (offset, str) => { for (let i = 0; i < str.length; i++) dataView.setUint8(offset + i, str.charCodeAt(i)); };
-      write(0, 'RIFF');
-      dataView.setUint32(4, 36 + samples.length * 2, true);
-      write(8, 'WAVE');
-      write(12, 'fmt ');
-      dataView.setUint32(16, 16, true);
-      dataView.setUint16(20, 1, true);
-      dataView.setUint16(22, 1, true);
-      dataView.setUint32(24, sampleRate, true);
-      dataView.setUint32(28, sampleRate * 2, true);
-      dataView.setUint16(32, 2, true);
-      dataView.setUint16(34, 16, true);
-      write(36, 'data');
-      dataView.setUint32(40, samples.length * 2, true);
-      let off = 44;
-      for (let i = 0; i < samples.length; i++, off += 2) {
-        const s = Math.max(-1, Math.min(1, samples[i]));
-        dataView.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      }
-      return new Blob([dataView], { type: 'audio/wav' });
-    }
-
-    async function renderWavFromSequence(seq, seconds) {
-      const sampleRate = 44100;
-      const len = Math.ceil(seconds * sampleRate);
-      const offline = new OfflineAudioContext(1, len, sampleRate);
-      const master = offline.createGain();
-      master.gain.value = 0.9;
-      master.connect(offline.destination);
-      const drumsVolume = Number($('drumsVol').value);
-      const melodyVolume = Number($('melodyVol').value);
-      for (const n of (seq.notes || [])) {
-        const start = n.startTime || 0;
-        if (start >= seconds) continue;
-        const end = Math.min(seconds, n.endTime || start + DEFAULT_NOTE_DURATION);
-        if (n.isDrum) {
-          const src = offline.createBufferSource();
-          const b = offline.createBuffer(1, Math.floor(sampleRate * 0.07), sampleRate);
-          const d = b.getChannelData(0);
-          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / d.length * DRUM_DECAY_RATE);
-          src.buffer = b;
-          const g = offline.createGain();
-          g.gain.value = drumsVolume * 0.6;
-          src.connect(g).connect(master);
-          src.start(start);
-          src.stop(start + 0.07);
-        } else {
-          const freq = midiToFreq(n.pitch || 60);
-          const osc = offline.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          const g = offline.createGain();
-          g.gain.setValueAtTime(0.0001, start);
-          g.gain.exponentialRampToValueAtTime(Math.max(0.0001, melodyVolume * 0.12), start + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001, end);
-          osc.connect(g).connect(master);
-          osc.start(start);
-          osc.stop(end + 0.02);
-        }
-      }
-      const rendered = await offline.startRendering();
-      return encodeWav(rendered.getChannelData(0), sampleRate);
-    }
-
-    async function generateAndPrepare() {
-      clearError();
-      const prompt = $('promptInput').value.trim();
-      if (!prompt) {
-        showError('Please enter a prompt first.', null);
-        return;
-      }
-      state.currentPrompt = prompt;
-      $('generateBtn').disabled = true;
-      $('statusText').classList.remove('ok');
-      $('statusText').textContent = 'Parsing prompt...';
       try {
-        const parsed = parsePrompt(prompt);
-        state.parsed = parsed;
-        const seq = await generateSequence(parsed);
-        state.sequence = seq;
-        $('statusText').classList.add('ok');
-        $('statusText').textContent = `AI sequence ready (${parsed.minutes} min @ ${parsed.bpm} BPM)`;
-        $('playBtn').disabled = false;
-        $('downloadBtn').disabled = false;
-        setLoading(false);
-        await playSequence(0);
+        $('modeInfo').textContent = 'Mode: Pollinations AI';
+        setStatus('AI generating...', false);
+
+        for (let i = 0; i < segmentsNeeded; i += 1) {
+          setStatus(`AI generating... segment ${i + 1}/${segmentsNeeded}`);
+          setProgress((i / segmentsNeeded) * 100);
+          const segmentPrompt = buildSegmentPrompt(prompt, i, segmentsNeeded);
+          const rawAudio = await fetchOnePollinationsSegment(segmentPrompt);
+          const audioBuffer = await decodeAudio(rawAudio);
+          decoded.push(audioBuffer);
+        }
+
+        state.fullBuffer = concatAudioBuffers(decoded);
+        setProgress(100);
+        setStatus('AI generation complete.', true);
       } catch (err) {
-        setLoading(false);
-        const msg = err?.message || 'Unknown generation error';
-        showError(`Could not generate music: ${msg}`, () => generateAndPrepare());
-        $('statusText').classList.remove('ok');
-        $('statusText').textContent = 'Generation failed';
+        setStatus('AI failed, switching to procedural fallback...');
+        $('modeInfo').textContent = 'Mode: Procedural fallback';
+        state.endpointUsed = 'fallback (Web Audio synthesis)';
+        $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
+        state.fullBuffer = createProceduralFallback(totalSeconds, bpm);
+        setProgress(100);
+        showError(`Pollinations unavailable. Using fallback engine. Details: ${err.message}`, generateSong);
       } finally {
         $('generateBtn').disabled = false;
       }
+
+      const hasAudio = !!state.fullBuffer;
+      $('playBtn').disabled = !hasAudio;
+      $('pauseBtn').disabled = !hasAudio;
+      $('stopBtn').disabled = !hasAudio;
+      $('downloadBtn').disabled = !hasAudio;
+      if (hasAudio) {
+        state.pausedAt = 0;
+        $('playbackStatus').textContent = `Playback: ready (${state.fullBuffer.duration.toFixed(1)}s)`;
+      }
     }
 
-    $('generateBtn').addEventListener('click', generateAndPrepare);
+    function connectVisualizer(sourceNode) {
+      const ctx = ensureAudioCtx();
+      if (!state.analyser) {
+        state.analyser = ctx.createAnalyser();
+        state.analyser.fftSize = 2048;
+      }
+      sourceNode.connect(state.analyser);
+      state.analyser.connect(ctx.destination);
+      drawVisualizer();
+    }
+
+    function stopPlayback() {
+      if (state.source) {
+        try { state.source.stop(); } catch (_) {}
+        state.source.disconnect();
+      }
+      state.source = null;
+      cancelAnimationFrame(state.raf);
+      state.raf = 0;
+      state.pausedAt = 0;
+      setPlaybackProgress(0);
+      $('playbackStatus').textContent = 'Playback: stopped';
+    }
+
+    async function play(startOffset = null) {
+      if (!state.fullBuffer) return;
+      const ctx = ensureAudioCtx();
+      await ctx.resume();
+      if (state.source) {
+        try { state.source.stop(); } catch (_) {}
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = state.fullBuffer;
+      connectVisualizer(src);
+      state.source = src;
+      const offset = startOffset ?? state.pausedAt ?? 0;
+      state.playbackStartTime = ctx.currentTime - offset;
+      src.start(0, offset);
+      src.onended = () => {
+        if (!state.source) return;
+        state.source = null;
+        state.pausedAt = 0;
+        setPlaybackProgress(100);
+        $('playbackStatus').textContent = 'Playback: finished';
+      };
+      $('playbackStatus').textContent = 'Playback: playing';
+      updatePlaybackProgressLoop();
+    }
+
+    function pause() {
+      const ctx = ensureAudioCtx();
+      if (!state.source || !state.fullBuffer) return;
+      state.pausedAt = Math.max(0, ctx.currentTime - state.playbackStartTime);
+      try { state.source.stop(); } catch (_) {}
+      state.source = null;
+      $('playbackStatus').textContent = `Playback: paused at ${state.pausedAt.toFixed(1)}s`;
+    }
+
+    function updatePlaybackProgressLoop() {
+      if (!state.fullBuffer || !state.source) return;
+      const ctx = ensureAudioCtx();
+      const elapsed = Math.max(0, ctx.currentTime - state.playbackStartTime);
+      const pct = (elapsed / state.fullBuffer.duration) * 100;
+      setPlaybackProgress(pct);
+      if (pct < 100 && state.source) state.raf = requestAnimationFrame(updatePlaybackProgressLoop);
+    }
+
+    function drawVisualizer() {
+      if (!state.analyser) return;
+      const canvas = $('viz');
+      const c = canvas.getContext('2d');
+      const bins = new Uint8Array(state.analyser.frequencyBinCount);
+
+      const loop = () => {
+        if (!state.analyser) return;
+        state.analyser.getByteFrequencyData(bins);
+        c.clearRect(0, 0, canvas.width, canvas.height);
+        const grad = c.createLinearGradient(0, 0, canvas.width, 0);
+        grad.addColorStop(0, '#22d3ee');
+        grad.addColorStop(0.5, '#a855f7');
+        grad.addColorStop(1, '#ec4899');
+        c.fillStyle = grad;
+        const barW = canvas.width / bins.length * 2.8;
+        let x = 0;
+        for (let i = 0; i < bins.length; i += 3) {
+          const h = (bins[i] / 255) * canvas.height;
+          c.fillRect(x, canvas.height - h, barW, h);
+          x += barW + 1;
+          if (x > canvas.width) break;
+        }
+        state.raf = requestAnimationFrame(loop);
+      };
+      cancelAnimationFrame(state.raf);
+      state.raf = requestAnimationFrame(loop);
+    }
+
+    function audioBufferToWav(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const format = 1;
+      const bitDepth = 16;
+      const numSamples = buffer.length;
+      const blockAlign = numChannels * bitDepth / 8;
+      const byteRate = sampleRate * blockAlign;
+      const dataSize = numSamples * blockAlign;
+      const out = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(out);
+
+      const writeStr = (offset, s) => { for (let i = 0; i < s.length; i += 1) view.setUint8(offset + i, s.charCodeAt(i)); };
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, format, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitDepth, true);
+      writeStr(36, 'data');
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      for (let i = 0; i < numSamples; i += 1) {
+        for (let ch = 0; ch < numChannels; ch += 1) {
+          const sample = buffer.getChannelData(ch)[i] || 0;
+          const s = Math.max(-1, Math.min(1, sample));
+          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+          offset += 2;
+        }
+      }
+      return new Blob([out], { type: 'audio/wav' });
+    }
+
+    function downloadWav() {
+      if (!state.fullBuffer) return;
+      const blob = audioBufferToWav(state.fullBuffer);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pollinations-ai-music.wav';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function initChips() {
+      const container = $('chips');
+      EXAMPLES.forEach((text) => {
+        const b = document.createElement('button');
+        b.className = 'chip';
+        b.textContent = text;
+        b.type = 'button';
+        b.addEventListener('click', () => { $('prompt').value = text; });
+        container.appendChild(b);
+      });
+    }
+
+    $('generateBtn').addEventListener('click', generateSong);
+    $('playBtn').addEventListener('click', () => play());
+    $('pauseBtn').addEventListener('click', pause);
+    $('stopBtn').addEventListener('click', stopPlayback);
+    $('downloadBtn').addEventListener('click', downloadWav);
     $('retryBtn').addEventListener('click', () => state.retryFn && state.retryFn());
 
-    $('playBtn').addEventListener('click', async () => {
-      if (!state.sequence) return;
-      const startAt = state.pausedMs || 0;
-      await playSequence(startAt);
-    });
-
-    $('pauseBtn').addEventListener('click', () => {
-      if (!state.player) return;
-      state.player.stop();
-      state.pausedMs = Math.max(0, (performance.now() - state.playStart) / 1000);
-      $('statusText').textContent = `Paused at ${state.pausedMs.toFixed(1)}s`;
-      $('playBtn').disabled = false;
-      $('pauseBtn').disabled = true;
-      $('stopBtn').disabled = false;
-    });
-
-    $('stopBtn').addEventListener('click', stopPlayback);
-
-    $('downloadBtn').addEventListener('click', async () => {
-      if (!state.sequence) return;
-      $('downloadBtn').disabled = true;
-      $('statusText').classList.remove('ok');
-      $('statusText').textContent = 'Rendering WAV offline...';
-      try {
-        const blob = await renderWavFromSequence(state.sequence, state.fullSeconds || 60);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `ai-music-${Date.now()}.wav`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        $('statusText').textContent = `WAV downloaded (${(blob.size / (1024 * 1024)).toFixed(1)} MB)`;
-      } catch (err) {
-        $('statusText').textContent = `WAV export failed: ${err?.message || 'unknown error'}`;
-      } finally {
-        $('downloadBtn').disabled = false;
-      }
-    });
-
-    $('fxWet').addEventListener('input', () => setWetMix(Number($('fxWet').value)));
-
-    renderChips();
-    drawVisualizer();
+    initChips();
   </script>
 </body>
 </html>
