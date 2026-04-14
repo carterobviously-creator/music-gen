@@ -3,693 +3,311 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Music Generator • Pollinations</title>
+  <title>Browser MusicGen (Transformers.js)</title>
   <style>
     :root {
-      --bg: #0a0a18;
-      --panel: #121227;
-      --panel-2: #1a1a36;
-      --text: #edf0ff;
-      --muted: #98a2c9;
-      --purple: #a855f7;
-      --cyan: #22d3ee;
-      --pink: #ec4899;
-      --green: #34d399;
-      --err: #fb7185;
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a31;
+      --panel-border: #243052;
+      --text: #eaf0ff;
+      --muted: #9ca8c8;
+      --accent: #7c9cff;
+      --accent-2: #3cd6b3;
+      --danger: #ff6f8d;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      color: var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: radial-gradient(1000px 500px at 10% -20%, #2b175f 0%, var(--bg) 55%) fixed;
-    }
-    .wrap {
-      width: min(1100px, 95vw);
-      margin: 22px auto 48px;
       display: grid;
-      gap: 14px;
+      place-items: center;
+      background: radial-gradient(circle at top, #162447 0%, var(--bg) 45%);
+      color: var(--text);
+      font: 16px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      padding: 20px;
     }
     .card {
-      background: linear-gradient(180deg, rgba(26, 26, 54, .95), rgba(15, 15, 32, .95));
-      border: 1px solid rgba(168, 85, 247, .25);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 12px 28px rgba(0,0,0,.35);
+      width: min(880px, 100%);
+      background: color-mix(in srgb, var(--panel) 90%, black 10%);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
     }
-    h1 { margin: 0; font-size: clamp(1.45rem, 2.4vw, 2.1rem); }
-    .sub { margin-top: 4px; color: var(--muted); }
+    h1 { margin: 0; font-size: clamp(1.4rem, 2.5vw, 2rem); }
+    p { margin: 8px 0 0; color: var(--muted); }
+    .grid {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    label { display: grid; gap: 8px; }
+    .label { color: var(--muted); font-size: 0.95rem; }
+    textarea, input, button {
+      border-radius: 10px;
+      border: 1px solid #33426e;
+      background: #121d38;
+      color: var(--text);
+      font: inherit;
+    }
     textarea {
-      width: 100%; min-height: 130px; resize: vertical;
-      border-radius: 12px; border: 1px solid rgba(34, 211, 238, .25);
-      background: rgba(8, 8, 20, .75); color: var(--text);
-      padding: 12px; font-size: 1rem;
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      padding: 12px;
     }
-    .chips, .row { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chip, button, input, .range { border-radius: 10px; border: 1px solid transparent; }
-    .chip, button {
-      padding: 8px 11px; cursor: pointer; color: var(--text);
-      background: #202048;
+    input[type='range'] { width: 100%; }
+    button {
+      padding: 11px 14px;
+      cursor: pointer;
+      transition: .15s transform ease, .15s background ease;
+      font-weight: 600;
     }
-    .chip:hover, button:hover { filter: brightness(1.07); }
-    button.primary {
-      background: linear-gradient(90deg, var(--purple), var(--cyan));
-      color: #0a0a18; font-weight: 700;
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    .primary {
+      background: linear-gradient(120deg, var(--accent), #a17dff);
+      border: none;
+      color: #081028;
     }
-    button.ghost { border-color: rgba(236,72,153,.35); background: transparent; }
-    button:disabled { opacity: .45; cursor: not-allowed; }
-    .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
-    .pill {
-      padding: 8px 10px; border-radius: 999px; font-size: .92rem;
-      border: 1px solid rgba(34,211,238,.25); background: rgba(14, 14, 31, .85);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .secondary {
+      background: #122545;
+      border-color: #2a497e;
     }
-    .progressOuter {
-      width: 100%; height: 12px; margin: 8px 0 4px;
-      border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.08);
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      color: var(--accent-2);
+      font-size: .95rem;
+      word-break: break-word;
     }
-    .progressInner {
-      width: 0%; height: 100%;
-      background: linear-gradient(90deg, var(--purple), var(--cyan), var(--pink));
-      transition: width .2s ease;
+    .status.error { color: var(--danger); }
+    audio { margin-top: 14px; width: 100%; }
+    code {
+      background: #10172f;
+      border: 1px solid #2b3f6d;
+      border-radius: 6px;
+      padding: 2px 6px;
+      color: #c9d8ff;
+      font-size: 0.9em;
     }
-    .status { color: var(--muted); }
-    .error {
-      margin-top: 10px; padding: 10px 12px; border-radius: 12px;
-      border: 1px solid rgba(251,113,133,.6); color: #ffd5de;
-      background: rgba(80, 20, 40, .35); display: none;
-    }
-    canvas {
-      width: 100%; height: clamp(170px, 30vw, 270px);
-      border: 1px solid rgba(168,85,247,.3); border-radius: 12px;
-      background: linear-gradient(180deg, #0a0a18, #070713);
-    }
-    .timeline { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
-    input[type="range"] { width: 100%; accent-color: var(--cyan); }
-    .advanced details { border: 1px solid rgba(34,211,238,.25); border-radius: 10px; padding: 8px 10px; }
-    .advancedGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
-    .label { display: block; color: var(--muted); font-size: .92rem; margin-bottom: 6px; }
-    input[type="number"] {
-      width: 100%; background: #111126; color: var(--text);
-      border: 1px solid rgba(236,72,153,.35); padding: 8px;
-    }
-    .small { font-size: .86rem; color: var(--muted); }
-    @media (max-width: 720px) { .row button { flex: 1 1 calc(50% - 8px); } }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <section class="card">
-      <h1>🎵 AI Music Generator</h1>
-      <div class="sub">Powered by Pollinations AI • no API key required</div>
-    </section>
+  <main class="card">
+    <h1>AI Music Generator (100% Browser)</h1>
+    <p>Uses <code>@huggingface/transformers</code> + Meta MusicGen model in your browser. No API keys, no backend.</p>
 
-    <section class="card">
-      <textarea id="prompt" aria-label="Music generation prompt" placeholder="Describe your music... e.g. chill lo-fi hip hop, 20 minutes, 80 BPM"></textarea>
-      <div class="chips" id="chips"></div>
-      <div class="row" style="margin-top:10px;">
-        <button id="generateBtn" class="primary">Generate Music</button>
-        <button id="playBtn" class="ghost" disabled>▶ Play</button>
-        <button id="pauseBtn" class="ghost" disabled>⏸ Pause</button>
-        <button id="stopBtn" class="ghost" disabled>⏹ Stop</button>
-        <button id="backBtn" class="ghost" disabled>◀◀ 15s</button>
-        <button id="fwdBtn" class="ghost" disabled>15s ▶▶</button>
-      </div>
-      <div class="meta">
-        <div class="pill" id="nowInfo">🎵 Generating: Waiting</div>
-        <div class="pill" id="durInfo">Duration: —</div>
-        <div class="pill" id="segInfo">Segments: —</div>
-      </div>
-      <div class="status" id="status">Ready.</div>
-      <div class="progressOuter"><div id="progress" class="progressInner"></div></div>
-      <div class="small" id="progressMeta">Segment 0 of 0 | ETA —</div>
-      <div class="small" id="segmentStatus">—</div>
-      <div class="small" id="tipStatus">Tip: If segments fail, try a slower connection or click Retry.</div>
-      <div id="errorBox" class="error">
-        <div id="errorText">Something went wrong.</div>
-        <div style="margin-top:8px"><button id="retryBtn" class="ghost">Retry</button></div>
-      </div>
-    </section>
+    <label style="margin-top: 18px;">
+      <span class="label">Prompt</span>
+      <textarea id="prompt">epic cinematic orchestral soundtrack, powerful drums, uplifting melody</textarea>
+    </label>
 
-    <section class="card">
-      <canvas id="visualizer" width="1200" height="260"></canvas>
-      <div class="timeline" style="margin-top:8px;">
-        <span id="elapsed">00:00</span>
-        <input id="seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="Seek position" />
-        <span id="total">00:00</span>
-      </div>
-    </section>
+    <div class="grid">
+      <label>
+        <span class="label">Duration: <strong id="secondsLabel">8</strong> seconds</span>
+        <input id="seconds" type="range" min="4" max="20" step="1" value="8" />
+      </label>
+      <label>
+        <span class="label">Guidance scale</span>
+        <input id="guidance" type="number" min="1" max="10" step="0.5" value="3" />
+      </label>
+    </div>
 
-    <section class="card advanced">
-      <details aria-label="Advanced generation settings">
-        <summary>⚙ Advanced Settings</summary>
-        <div class="advancedGrid">
-          <label>
-            <span class="label">Duration (minutes): <strong id="durLabel">10</strong></span>
-            <input id="durationSlider" type="range" min="10" max="120" value="10" aria-label="Duration in minutes" />
-          </label>
-          <label>
-            <span class="label">BPM Override (optional)</span>
-            <input id="bpmOverride" type="number" min="40" max="220" step="1" placeholder="Auto from prompt" />
-          </label>
-          <label>
-            <span class="label">Volume: <strong id="volLabel">80%</strong></span>
-            <input id="volumeSlider" type="range" min="0" max="100" value="80" aria-label="Volume" />
-          </label>
-          <div>
-            <span class="label">Output</span>
-            <button id="downloadBtn" class="ghost" disabled>⬇ Download WAV</button>
-            <button id="regenBtn" class="ghost" disabled style="margin-left:8px;">🔄 Regenerate</button>
-            <div class="small" id="endpoint">Endpoint: https://gen.pollinations.ai/audio/{prompt}</div>
-          </div>
-        </div>
-      </details>
-    </section>
+    <div class="row" style="margin-top: 16px;">
+      <button id="generate" class="primary">Generate Music</button>
+      <button id="download" class="secondary" disabled>Download WAV</button>
+    </div>
+
+    <div id="status" class="status" role="status" aria-live="polite">Ready.</div>
+    <audio id="player" controls></audio>
   </main>
 
-  <script>
+  <script type="module">
+    import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3';
+
     const $ = (id) => document.getElementById(id);
+    const statusEl = $('status');
+    const generateBtn = $('generate');
+    const downloadBtn = $('download');
+    const player = $('player');
 
-    const EXAMPLES = [
-      'chill lo-fi hip hop, 20 minutes, 80 bpm',
-      'epic cinematic orchestral, 15 min, 110 bpm',
-      'ambient relaxing drone, 30 minutes',
-      'jazz piano smooth acoustic, 12 min, 95 bpm',
-      'edm dance upbeat synth, 10 minutes, 128 bpm'
-    ];
-    const SEGMENT_SECONDS_EST = 45;
-    const DEFAULT_BPM = 90;
-    const MIN_BPM = 40;
-    const MAX_BPM = 220;
-    const DEFAULT_DURATION_MINUTES = 10;
-    const MIN_DURATION_MINUTES = 10;
-    const MAX_DURATION_MINUTES = 120;
-    const MIN_SAFE_DURATION_MINUTES = 0.1;
-    const SKIP_SECONDS = 15;
-    const SEGMENT_BATCH_SIZE = 1;
-    const MAX_RETRIES = 5;
-    const FETCH_RETRIES_PER_DECODE_ATTEMPT = 3;
-    const FETCH_TIMEOUT_MS = 45000;
-    const MIN_VALID_RESPONSE_BYTES = 1000; // Very small bodies are typically HTML/error responses, not playable audio.
-    const FETCH_RETRY_MAX_DELAY_MS = 16000;
-    const DECODE_RETRY_BASE_DELAY_MS = 2000;
-    const TICK_INTERVAL_MS = 100;
-    const VISUALIZER_CURVE_EXPONENT = 1.2;
-    const VISUALIZER_BAR_COUNT = 90;
-    const PROMPT_PREVIEW_MAX_CHARS = 52;
-    const DOWNLOAD_URL_REVOKE_DELAY_MS = 3000;
-    const SEGMENT_SUFFIXES = ['intro', 'verse', 'chorus', 'bridge', 'verse variation', 'chorus build', 'drop', 'breakdown', 'outro fade'];
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
 
-    const state = {
-      audioCtx: null,
-      analyser: null,
-      compressor: null,
-      gain: null,
-      source: null,
-      fullBuffer: null,
-      playbackStartedAt: 0,
-      pausedAt: 0,
-      raf: 0,
-      tick: 0,
-      isPlaying: false,
-      lastPrompt: '',
-      retryFn: null,
-      durationTouched: false
-    };
-    let cachedSegments = [];
-    let cachedSegmentsKey = '';
+    let generatorPromise;
+    let lastBlob;
 
-    const keywordMap = [
-      [/\blo\s*-?fi\b|\bchill\b/i, 'lofi hip hop chill relaxing study beats'],
-      [/\bjazz\b/i, 'jazz piano smooth acoustic'],
-      [/\bedm\b|\belectronic\b|\bdance\b/i, 'electronic dance music upbeat synth'],
-      [/\bambient\b|\brelaxing\b/i, 'ambient atmospheric relaxing calm drone'],
-      [/\bepic\b|\bcinematic\b/i, 'epic cinematic orchestral dramatic'],
-      [/\bdark\b/i, 'dark atmospheric minor key mysterious'],
-      [/\bpop\b|\bupbeat\b|\bhappy\b/i, 'pop upbeat bright cheerful'],
-      [/\bhip\s*hop\b|\btrap\b/i, 'hip hop trap beat 808 bass'],
-      [/\bpiano\b/i, 'solo piano emotional beautiful']
+    // MusicGen decodes roughly 50 audio tokens per second.
+    const TOKENS_PER_SECOND = 50;
+    // Keep a small floor so very short durations still produce usable audio.
+    const MIN_NEW_TOKENS = 32;
+    const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
+    const candidateModels = [
+      'onnx-community/musicgen-small',
+      'Xenova/musicgen-small',
+      'facebook/musicgen-small'
     ];
 
-    function ensureAudio() {
-      if (!state.audioCtx) {
-        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        state.gain = state.audioCtx.createGain();
-        state.gain.gain.value = Number($('volumeSlider').value) / 100;
-        state.analyser = state.audioCtx.createAnalyser();
-        state.analyser.fftSize = 2048;
-        state.analyser.smoothingTimeConstant = 0.8;
-        state.compressor = state.audioCtx.createDynamicsCompressor();
-        state.gain.connect(state.analyser);
-        state.analyser.connect(state.compressor);
-        state.compressor.connect(state.audioCtx.destination);
-      }
-      return state.audioCtx;
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle('error', Boolean(isError));
     }
 
-    function parseBpm(prompt) {
-      const nearTag = prompt.match(/\b(?:tempo|bpm)\b\s*[:=-]?\s*(\d{2,3})\b|(\d{2,3})\s*\b(?:bpm|tempo)\b/i);
-      const bpm = Number((nearTag && (nearTag[1] ?? nearTag[2])) || DEFAULT_BPM);
-      return Math.min(MAX_BPM, Math.max(MIN_BPM, Number.isFinite(bpm) ? bpm : DEFAULT_BPM));
-    }
-
-    function parseDurationMinutes(prompt) {
-      const minMatch = prompt.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/i);
-      const hourMatch = prompt.match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i);
-      let minutes = DEFAULT_DURATION_MINUTES;
-      if (hourMatch) minutes = Number(hourMatch[1]) * 60;
-      else if (minMatch) minutes = Number(minMatch[1]);
-      if (!Number.isFinite(minutes)) minutes = DEFAULT_DURATION_MINUTES;
-      return Math.max(MIN_DURATION_MINUTES, Math.round(minutes));
-    }
-
-    function enrichPrompt(prompt, bpm) {
-      const parts = [];
-      for (const [regex, enriched] of keywordMap) {
-        if (regex.test(prompt)) parts.push(enriched);
-      }
-      const flavor = parts.length ? parts.join(', ') : 'cinematic instrumental evolving arrangement';
-      return `${prompt}. ${flavor}. ${bpm} BPM. high quality instrumental music.`;
-    }
-
-    function formatTime(sec) {
-      if (!Number.isFinite(sec)) return '00:00';
-      const s = Math.max(0, Math.floor(sec));
-      const m = Math.floor(s / 60);
-      return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-    }
-
-    function setProgress(pct, segDone, segTotal, etaSec) {
-      $('progress').style.width = `${Math.max(0, Math.min(100, pct))}%`;
-      $('progressMeta').textContent = `Segment ${segDone} of ${segTotal} | ETA ${etaSec > 0 ? `~${Math.ceil(etaSec)}s` : '—'}`;
-    }
-
-    function showError(msg, retryFn) {
-      state.retryFn = retryFn || null;
-      $('errorText').textContent = msg;
-      $('errorBox').style.display = 'block';
-    }
-
-    function clearError() {
-      $('errorBox').style.display = 'none';
-      state.retryFn = null;
-    }
-
-    function updateTransportButtons(enabled) {
-      for (const id of ['playBtn', 'pauseBtn', 'stopBtn', 'backBtn', 'fwdBtn', 'downloadBtn', 'regenBtn']) {
-        $(id).disabled = !enabled;
+    function floatTo16BitPCM(view, offset, input) {
+      for (let i = 0; i < input.length; i += 1, offset += 2) {
+        const s = Math.max(-1, Math.min(1, input[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
       }
     }
 
-    async function fetchWithRetry(url, maxRetries = MAX_RETRIES, onRetry) {
-      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-        try {
-          const res = await fetch(url, { signal: controller.signal, mode: 'cors' });
-          clearTimeout(timeout);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const arrayBuffer = await res.arrayBuffer();
-          if (arrayBuffer.byteLength < MIN_VALID_RESPONSE_BYTES) throw new Error('Response too small, likely an error page');
-          return arrayBuffer;
-        } catch (err) {
-          clearTimeout(timeout);
-          if (attempt >= maxRetries) throw err;
-          if (typeof onRetry === 'function') onRetry(attempt + 1, maxRetries, err);
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), FETCH_RETRY_MAX_DELAY_MS);
-          await new Promise((r) => setTimeout(r, delay));
-        }
-      }
-      throw new Error('Max retries exceeded while fetching Pollinations audio');
-    }
-
-    async function fetchAndDecodeSegment(ctx, url, maxRetries = MAX_RETRIES, onRetry) {
-      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
-        try {
-          const arrayBuffer = await fetchWithRetry(url, Math.min(FETCH_RETRIES_PER_DECODE_ATTEMPT, maxRetries));
-          const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-          return audioBuffer;
-        } catch (err) {
-          if (attempt >= maxRetries) throw new Error(`Segment failed after ${maxRetries} attempts: ${err.message}`);
-          if (typeof onRetry === 'function') onRetry(attempt + 1, maxRetries, err);
-          const delay = Math.min(DECODE_RETRY_BASE_DELAY_MS * attempt, FETCH_RETRY_MAX_DELAY_MS);
-          await new Promise((r) => setTimeout(r, delay));
-        }
-      }
-      throw new Error('Segment decode retries exhausted');
-    }
-
-    function makeSegmentPrompt(basePrompt, index) {
-      const suffixes = SEGMENT_SUFFIXES.length ? SEGMENT_SUFFIXES : ['variation'];
-      return `${basePrompt} ${suffixes[index % suffixes.length]} section ${index + 1}`;
-    }
-
-    async function generateSegments(basePrompt, durationMinutes) {
-      const ctx = ensureAudio();
-      const safeMinutes = Number.isFinite(durationMinutes) ? Math.max(MIN_SAFE_DURATION_MINUTES, durationMinutes) : DEFAULT_DURATION_MINUTES;
-      const segmentCount = Math.max(1, Math.ceil((safeMinutes * 60) / SEGMENT_SECONDS_EST));
-      if (cachedSegments.length !== segmentCount) cachedSegments = new Array(segmentCount);
-      const goodSegments = [];
-      const started = performance.now();
-      let processed = 0;
-      let failed = 0;
-      const batchSize = SEGMENT_BATCH_SIZE === 2 ? 2 : 1;
-
-      for (let batchStart = 0; batchStart < segmentCount; batchStart += batchSize) {
-        const batchEnd = Math.min(segmentCount, batchStart + batchSize);
-        const jobs = [];
-        for (let i = batchStart; i < batchEnd; i += 1) {
-          jobs.push((async () => {
-            if (cachedSegments[i]) {
-              processed += 1;
-              const pctCached = (processed / Math.max(1, segmentCount)) * 100;
-              const elapsedCached = (performance.now() - started) / 1000;
-              const avgCached = elapsedCached / Math.max(1, processed);
-              const etaCached = Math.max(0, avgCached * (segmentCount - processed));
-              $('status').textContent = `Loading segment ${processed} of ${segmentCount}...`;
-              $('segmentStatus').textContent = `✓ Segment ${i + 1} (cached)`;
-              setProgress(pctCached, processed, segmentCount, etaCached);
-              return { ok: true, index: i, buffer: cachedSegments[i] };
-            }
-            const prompt = makeSegmentPrompt(basePrompt, i);
-            const url = `https://gen.pollinations.ai/audio/${encodeURIComponent(prompt)}`;
-            const decoded = await fetchAndDecodeSegment(ctx, url, MAX_RETRIES, (nextAttempt, maxAttempt) => {
-              $('segmentStatus').textContent = `↻ Segment ${i + 1} (retry ${nextAttempt}/${maxAttempt})...`;
-            });
-            cachedSegments[i] = decoded;
-            processed += 1;
-            const pct = (processed / Math.max(1, segmentCount)) * 100;
-            const elapsed = (performance.now() - started) / 1000;
-            const avg = elapsed / Math.max(1, processed);
-            const eta = Math.max(0, avg * (segmentCount - processed));
-            $('status').textContent = `Loading segment ${processed} of ${segmentCount}...`;
-            $('segmentStatus').textContent = `✓ Segment ${i + 1}`;
-            setProgress(pct, processed, segmentCount, eta);
-            return { ok: true, index: i, buffer: decoded };
-          })().catch((err) => {
-            processed += 1;
-            const pctFailed = (processed / Math.max(1, segmentCount)) * 100;
-            const elapsedFailed = (performance.now() - started) / 1000;
-            const avgFailed = elapsedFailed / Math.max(1, processed);
-            const etaFailed = Math.max(0, avgFailed * (segmentCount - processed));
-            $('status').textContent = `Loading segment ${processed} of ${segmentCount}...`;
-            $('segmentStatus').textContent = `✖ Segment ${i + 1} failed after retries`;
-            setProgress(pctFailed, processed, segmentCount, etaFailed);
-            return { ok: false, index: i, error: err };
-          }));
-        }
-        const results = await Promise.allSettled(jobs);
-        for (const settled of results) {
-          const result = settled.status === 'fulfilled' ? settled.value : { ok: false, error: settled.reason };
-          if (result.ok && result.buffer) goodSegments.push(result);
-          else failed += 1;
-        }
-      }
-
-      goodSegments.sort((a, b) => a.index - b.index);
-      const segments = goodSegments.map((entry) => entry.buffer);
-      return { segments, failed, segmentCount };
-    }
-
-    function concatAudioBuffers(buffers) {
-      const ctx = ensureAudio();
-      if (!buffers || buffers.length < 1) return ctx.createBuffer(2, 1, ctx.sampleRate);
-      const sampleRate = buffers[0].sampleRate || ctx.sampleRate;
-      const channels = Math.max(...buffers.map((b) => b.numberOfChannels));
-      const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
-      const out = ctx.createBuffer(channels, totalLength, sampleRate);
-      let offset = 0;
-      for (const b of buffers) {
-        for (let ch = 0; ch < channels; ch += 1) {
-          if (b.numberOfChannels < 1) continue;
-          const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
-          out.getChannelData(ch).set(src, offset);
-        }
-        offset += b.length;
-      }
-      return out;
-    }
-
-    function stopPlayback() {
-      if (state.source) {
-        try { state.source.stop(); } catch (err) { console.warn('Stop playback error:', err); }
-        state.source.disconnect();
-        state.source = null;
-      }
-      state.isPlaying = false;
-      cancelAnimationFrame(state.raf);
-      clearInterval(state.tick);
-    }
-
-    function play(offsetSeconds = state.pausedAt || 0) {
-      if (!state.fullBuffer) return;
-      const ctx = ensureAudio();
-      if (ctx.state === 'suspended') ctx.resume();
-      stopPlayback();
-      const src = ctx.createBufferSource();
-      src.buffer = state.fullBuffer;
-      src.connect(state.gain);
-      const now = ctx.currentTime;
-      state.playbackStartedAt = now - offsetSeconds;
-      state.source = src;
-      state.isPlaying = true;
-      src.start(now, Math.max(0, offsetSeconds));
-      src.onended = () => {
-        if (state.isPlaying) {
-          state.pausedAt = 0;
-          state.isPlaying = false;
-          $('seek').value = '0';
-          $('elapsed').textContent = '00:00';
-          $('status').textContent = 'Playback ended.';
+    function encodeWav(samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      const writeString = (offset, value) => {
+        for (let i = 0; i < value.length; i += 1) {
+          view.setUint8(offset + i, value.charCodeAt(i));
         }
       };
-      $('status').textContent = 'Playing...';
-      runVisualizer();
-      startTick();
-    }
 
-    function pause() {
-      if (!state.isPlaying || !state.audioCtx) return;
-      state.pausedAt = Math.max(0, state.audioCtx.currentTime - state.playbackStartedAt);
-      stopPlayback();
-      $('status').textContent = 'Paused.';
-    }
-
-    function seekTo(seconds) {
-      if (!state.fullBuffer) return;
-      if (!Number.isFinite(seconds)) return;
-      state.pausedAt = Math.max(0, Math.min(seconds, state.fullBuffer.duration));
-      if (state.isPlaying) play(state.pausedAt);
-      else $('elapsed').textContent = formatTime(state.pausedAt);
-    }
-
-    function currentPlaybackTime() {
-      if (!state.fullBuffer || !state.audioCtx) return state.pausedAt || 0;
-      return state.isPlaying ? Math.max(0, state.audioCtx.currentTime - state.playbackStartedAt) : (state.pausedAt || 0);
-    }
-
-    function runVisualizer() {
-      const canvas = $('visualizer');
-      const g = canvas.getContext('2d');
-      const analyser = state.analyser;
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const draw = () => {
-        state.raf = requestAnimationFrame(draw);
-        analyser.getByteFrequencyData(data);
-        g.clearRect(0, 0, canvas.width, canvas.height);
-        const grad = g.createLinearGradient(0, 0, canvas.width, 0);
-        grad.addColorStop(0, '#a855f7');
-        grad.addColorStop(0.5, '#22d3ee');
-        grad.addColorStop(1, '#ec4899');
-        g.fillStyle = grad;
-        const bars = VISUALIZER_BAR_COUNT;
-        const step = Math.max(1, Math.floor(data.length / bars));
-        const barW = canvas.width / bars;
-        for (let i = 0; i < bars; i += 1) {
-          const val = data[i * step] / 255;
-          const h = Math.pow(val, VISUALIZER_CURVE_EXPONENT) * canvas.height;
-          g.fillRect(i * barW + 1, canvas.height - h, Math.max(1, barW - 2), h);
-        }
-      };
-      draw();
-    }
-
-    function startTick() {
-      clearInterval(state.tick);
-      state.tick = setInterval(() => {
-        if (!state.fullBuffer || !state.audioCtx) return;
-        const current = state.isPlaying ? Math.max(0, state.audioCtx.currentTime - state.playbackStartedAt) : state.pausedAt;
-        const duration = state.fullBuffer.duration;
-        const pct = duration > 0 ? (current / duration) * 100 : 0;
-        $('seek').value = String(Math.max(0, Math.min(100, pct)));
-        $('elapsed').textContent = formatTime(current);
-      }, TICK_INTERVAL_MS);
-    }
-
-    function audioBufferToWav(buffer) {
-      const numChannels = buffer.numberOfChannels;
-      const sampleRate = buffer.sampleRate;
-      const bits = 16;
-      const blockAlign = (numChannels * bits) / 8;
-      const dataSize = buffer.length * blockAlign;
-      const out = new ArrayBuffer(44 + dataSize);
-      const view = new DataView(out);
-      const write = (offset, str) => { for (let i = 0; i < str.length; i += 1) view.setUint8(offset + i, str.charCodeAt(i)); };
-      write(0, 'RIFF');
-      view.setUint32(4, 36 + dataSize, true);
-      write(8, 'WAVE');
-      write(12, 'fmt ');
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
       view.setUint32(16, 16, true);
       view.setUint16(20, 1, true);
-      view.setUint16(22, numChannels, true);
+      view.setUint16(22, 1, true);
       view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * blockAlign, true);
-      view.setUint16(32, blockAlign, true);
-      view.setUint16(34, bits, true);
-      write(36, 'data');
-      view.setUint32(40, dataSize, true);
-      let off = 44;
-      for (let i = 0; i < buffer.length; i += 1) {
-        for (let ch = 0; ch < numChannels; ch += 1) {
-          const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i] || 0));
-          view.setInt16(off, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-          off += 2;
-        }
-      }
-      return new Blob([out], { type: 'audio/wav' });
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+      floatTo16BitPCM(view, 44, samples);
+
+      return new Blob([view], { type: 'audio/wav' });
     }
 
-    async function generateMusic() {
-      clearError();
-      updateTransportButtons(false);
-      $('progress').style.width = '0%';
+    async function loadGenerator() {
+      if (generatorPromise) return generatorPromise;
+
+      generatorPromise = (async () => {
+        const canUseWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
+
+        for (const modelId of candidateModels) {
+          const devices = canUseWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
+
+          for (const device of devices) {
+            try {
+              setStatus(`Loading model (${modelId}) on ${device}... first run can take a while.`);
+              const generator = await pipeline('text-to-audio', modelId, {
+                device,
+                progress_callback: (info) => {
+                  const pct = Number.isFinite(info?.progress) ? ` ${Math.round(info.progress)}%` : '';
+                  const file = info?.file ? ` (${info.file.split('/').pop()})` : '';
+                  setStatus(`Loading model (${modelId})${file}${pct}`);
+                }
+              });
+
+              setStatus(`Model loaded: ${modelId} on ${device}.`);
+              return generator;
+            } catch (error) {
+              console.warn(`Failed loading ${modelId} on ${device}`, error);
+            }
+          }
+        }
+
+        throw new Error('Unable to load a browser-compatible MusicGen model from Hugging Face.');
+      })();
+
+      return generatorPromise;
+    }
+
+    function normalizeOutput(result) {
+      const first = Array.isArray(result) ? result[0] : result;
+      if (!first || !first.audio) {
+        throw new Error('Model returned no audio data.');
+      }
+
+      const audio = Array.isArray(first.audio) ? first.audio[0] : first.audio;
+      if (Array.isArray(first.audio) && first.audio.length === 0) {
+        throw new Error('Model returned an empty audio array.');
+      }
+      if (!(audio instanceof Float32Array) && !ArrayBuffer.isView(audio)) {
+        throw new Error('Audio output format is not supported.');
+      }
+
+      return {
+        samples: audio instanceof Float32Array ? audio : new Float32Array(audio),
+        samplingRate: Number(first.sampling_rate) || 32000
+      };
+    }
+
+    $('seconds').addEventListener('input', () => {
+      $('secondsLabel').textContent = $('seconds').value;
+    });
+
+    generateBtn.addEventListener('click', async () => {
       const prompt = $('prompt').value.trim();
-      if (!prompt) return showError('Please describe the music you want.', generateMusic);
-      state.lastPrompt = prompt;
+      const durationSeconds = Number($('seconds').value);
+      const guidanceScale = Number($('guidance').value);
 
-      const durationFromPrompt = parseDurationMinutes(prompt);
-      if (!state.durationTouched) {
-        const parsedClamped = Math.max(MIN_DURATION_MINUTES, Math.min(MAX_DURATION_MINUTES, durationFromPrompt));
-        $('durationSlider').value = String(parsedClamped);
-        $('durLabel').textContent = String(parsedClamped);
-      }
-      const durationOverride = Number($('durationSlider').value) || DEFAULT_DURATION_MINUTES;
-      const minutes = Math.max(MIN_DURATION_MINUTES, durationOverride);
-      const bpm = Number($('bpmOverride').value) || parseBpm(prompt);
-      const basePrompt = enrichPrompt(prompt, bpm);
-      const segmentCount = Math.ceil((minutes * 60) / SEGMENT_SECONDS_EST);
-      const nextCacheKey = `${basePrompt}::${segmentCount}`;
-      if (cachedSegmentsKey !== nextCacheKey) {
-        cachedSegments = new Array(segmentCount);
-        cachedSegmentsKey = nextCacheKey;
-      } else if (cachedSegments.length !== segmentCount) {
-        cachedSegments.length = segmentCount;
+      if (!prompt) {
+        setStatus('Please enter a prompt.', true);
+        return;
       }
 
-      $('nowInfo').textContent = `🎵 Generating: ${basePrompt.slice(0, PROMPT_PREVIEW_MAX_CHARS)}${basePrompt.length > PROMPT_PREVIEW_MAX_CHARS ? '…' : ''}`;
-      $('durInfo').textContent = `Duration: ${minutes} min • ${bpm} BPM`;
-      $('segInfo').textContent = `Segments: ${segmentCount}`;
-      $('status').textContent = 'Starting generation...';
-      $('segmentStatus').textContent = 'Preparing segment fetch...';
+      if (!Number.isFinite(guidanceScale) || guidanceScale <= 0) {
+        setStatus('Guidance scale must be a positive number.', true);
+        return;
+      }
+
+      generateBtn.disabled = true;
+      downloadBtn.disabled = true;
+      setStatus('Preparing generator...');
 
       try {
-        $('generateBtn').disabled = true;
-        const { segments, failed } = await generateSegments(basePrompt, minutes);
-        if (!segments.length) {
-          $('status').textContent = 'Generation failed.';
-          showError('No segments loaded. Please retry.', generateMusic);
-          return;
-        }
-        state.fullBuffer = concatAudioBuffers(segments);
-        $('total').textContent = formatTime(state.fullBuffer.duration);
-        if (failed > 0) $('status').textContent = `${failed} segment${failed === 1 ? '' : 's'} skipped due to network errors — playing partial song.`;
-        else $('status').textContent = `Ready. Generated ${segments.length} segments.`;
-        setProgress(100, segments.length, segments.length, 0);
-        $('segmentStatus').textContent = `✓ Loaded ${segments.length} segment${segments.length === 1 ? '' : 's'}`;
-        state.pausedAt = 0;
-        $('seek').value = '0';
-        $('elapsed').textContent = '00:00';
-        updateTransportButtons(true);
-      } catch (err) {
-        console.error(err);
-        $('status').textContent = 'Generation failed.';
-        showError('Could not fetch/decode some audio segments. Please retry — slow or unstable connections can fail mid-stream.', generateMusic);
+        const generator = await loadGenerator();
+        setStatus('Generating audio... this can take some time depending on your device.');
+
+        const maxNewTokens = Math.max(MIN_NEW_TOKENS, Math.round(durationSeconds * TOKENS_PER_SECOND));
+        const output = await generator(prompt, {
+          max_new_tokens: maxNewTokens,
+          guidance_scale: guidanceScale
+        });
+
+        const { samples, samplingRate } = normalizeOutput(output);
+        if (lastBlob) URL.revokeObjectURL(player.src);
+        lastBlob = encodeWav(samples, samplingRate);
+        player.src = URL.createObjectURL(lastBlob);
+        player.play().catch((error) => {
+          console.warn('Autoplay blocked or playback failed.', error);
+        });
+
+        setStatus(`Done. Generated ${durationSeconds}s at ${samplingRate} Hz.`);
+        downloadBtn.disabled = false;
+      } catch (error) {
+        console.error(error);
+        setStatus(`Generation failed: ${error?.message || error}`, true);
       } finally {
-        $('generateBtn').disabled = false;
+        generateBtn.disabled = false;
       }
-    }
+    });
 
-    function init() {
-      $('durationSlider').min = String(MIN_DURATION_MINUTES);
-      $('durationSlider').max = String(MAX_DURATION_MINUTES);
-      $('durationSlider').value = String(DEFAULT_DURATION_MINUTES);
-
-      EXAMPLES.forEach((text) => {
-        const b = document.createElement('button');
-        b.className = 'chip';
-        b.type = 'button';
-        b.textContent = text;
-        b.setAttribute('aria-label', `Load example prompt: ${text}`);
-        b.addEventListener('click', () => { $('prompt').value = text; });
-        $('chips').appendChild(b);
-      });
-
-      $('durationSlider').addEventListener('input', () => {
-        state.durationTouched = true;
-        $('durLabel').textContent = $('durationSlider').value;
-      });
-      $('volumeSlider').addEventListener('input', () => {
-        const v = Number($('volumeSlider').value);
-        $('volLabel').textContent = `${v}%`;
-        if (state.gain) state.gain.gain.value = v / 100;
-      });
-
-      $('generateBtn').addEventListener('click', generateMusic);
-      $('playBtn').addEventListener('click', () => play());
-      $('pauseBtn').addEventListener('click', pause);
-      $('stopBtn').addEventListener('click', () => {
-        stopPlayback();
-        state.pausedAt = 0;
-        $('seek').value = '0';
-        $('elapsed').textContent = '00:00';
-        $('status').textContent = 'Stopped.';
-      });
-      $('backBtn').addEventListener('click', () => seekTo(currentPlaybackTime() - SKIP_SECONDS));
-      $('fwdBtn').addEventListener('click', () => seekTo(currentPlaybackTime() + SKIP_SECONDS));
-      $('seek').addEventListener('input', () => {
-        if (!state.fullBuffer) return;
-        const duration = state.fullBuffer.duration > 0 ? state.fullBuffer.duration : 0;
-        const sec = (Number($('seek').value) / 100) * duration;
-        state.pausedAt = sec;
-        $('elapsed').textContent = formatTime(sec);
-      });
-      $('seek').addEventListener('change', () => seekTo(state.pausedAt || 0));
-      $('downloadBtn').addEventListener('click', () => {
-        if (!state.fullBuffer) return;
-        const blob = audioBufferToWav(state.fullBuffer);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'pollinations-music.wav';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
-      });
-      $('regenBtn').addEventListener('click', () => {
-        if (state.lastPrompt) {
-          $('prompt').value = state.lastPrompt;
-          generateMusic();
-        }
-      });
-      $('retryBtn').addEventListener('click', () => state.retryFn && state.retryFn());
-
-      $('durLabel').textContent = $('durationSlider').value;
-      $('volLabel').textContent = `${$('volumeSlider').value}%`;
-    }
-
-    init();
+    downloadBtn.addEventListener('click', () => {
+      if (!lastBlob) return;
+      const url = URL.createObjectURL(lastBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'musicgen-output.wav';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
+    });
   </script>
 </body>
 </html>
