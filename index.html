@@ -3,111 +3,166 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pollinations AI Music Generator</title>
+  <title>AI Music Generator • Pollinations</title>
   <style>
     :root {
       --bg: #0a0a18;
-      --panel: #13132a;
-      --panel-2: #1a1a38;
-      --text: #eef0ff;
-      --muted: #9ca3bf;
+      --panel: #121227;
+      --panel-2: #1a1a36;
+      --text: #edf0ff;
+      --muted: #98a2c9;
       --purple: #a855f7;
       --cyan: #22d3ee;
       --pink: #ec4899;
-      --ok: #34d399;
-      --err: #f87171;
+      --green: #34d399;
+      --err: #fb7185;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      color: var(--text);
-      background: radial-gradient(circle at 25% 0%, #22164d 0%, var(--bg) 45%) fixed;
       min-height: 100vh;
-      padding: 16px;
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1000px 500px at 10% -20%, #2b175f 0%, var(--bg) 55%) fixed;
     }
-    .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
+    .wrap {
+      width: min(1100px, 95vw);
+      margin: 22px auto 48px;
+      display: grid;
+      gap: 14px;
+    }
     .card {
-      background: linear-gradient(180deg, rgba(168,85,247,0.07), rgba(34,211,238,0.04)), var(--panel);
-      border: 1px solid rgba(168,85,247,.25);
-      border-radius: 14px;
-      padding: 14px;
-      box-shadow: 0 12px 35px rgba(0,0,0,.4);
+      background: linear-gradient(180deg, rgba(26, 26, 54, .95), rgba(15, 15, 32, .95));
+      border: 1px solid rgba(168, 85, 247, .25);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 12px 28px rgba(0,0,0,.35);
     }
-    h1 { margin: 0 0 6px; font-size: clamp(1.4rem, 3vw, 2rem); }
-    .sub { color: var(--muted); margin: 0 0 10px; }
+    h1 { margin: 0; font-size: clamp(1.45rem, 2.4vw, 2.1rem); }
+    .sub { margin-top: 4px; color: var(--muted); }
     textarea {
-      width: 100%; min-height: 140px; resize: vertical; border-radius: 10px;
-      border: 1px solid rgba(34,211,238,.45); background: var(--panel-2); color: var(--text);
-      padding: 12px; font: inherit;
+      width: 100%; min-height: 130px; resize: vertical;
+      border-radius: 12px; border: 1px solid rgba(34, 211, 238, .25);
+      background: rgba(8, 8, 20, .75); color: var(--text);
+      padding: 12px; font-size: 1rem;
     }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .chip {
-      border: 1px solid rgba(236,72,153,.45); color: #ffd6ef; background: rgba(236,72,153,.1);
-      border-radius: 999px; padding: 7px 10px; cursor: pointer; font-size: .85rem;
+    .chips, .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip, button, input, .range { border-radius: 10px; border: 1px solid transparent; }
+    .chip, button {
+      padding: 8px 11px; cursor: pointer; color: var(--text);
+      background: #202048;
     }
-    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    button {
-      border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
-      background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; font-weight: 700;
+    .chip:hover, button:hover { filter: brightness(1.07); }
+    button.primary {
+      background: linear-gradient(90deg, var(--purple), var(--cyan));
+      color: #0a0a18; font-weight: 700;
     }
-    button.ghost { background: #202047; border: 1px solid rgba(34,211,238,.4); }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .meta {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;
-      margin-top: 10px;
+    button.ghost { border-color: rgba(236,72,153,.35); background: transparent; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
+    .pill {
+      padding: 8px 10px; border-radius: 999px; font-size: .92rem;
+      border: 1px solid rgba(34,211,238,.25); background: rgba(14, 14, 31, .85);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .pill { background: #1d1d3e; border-radius: 9px; padding: 8px 10px; color: #cfd2ff; font-size: .9rem; }
-    .status { margin-top: 10px; color: var(--cyan); min-height: 1.3em; }
-    .status.ok { color: var(--ok); }
-    .error {
-      display: none; margin-top: 10px; color: #ffd9d9; background: rgba(248,113,113,.12);
-      border: 1px solid rgba(248,113,113,.55); border-radius: 9px; padding: 9px;
+    .progressOuter {
+      width: 100%; height: 12px; margin: 8px 0 4px;
+      border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.08);
     }
-    .progressOuter { margin-top: 10px; background: #11112a; border-radius: 999px; height: 10px; overflow: hidden; }
     .progressInner {
-      height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
-      transition: width .15s linear;
+      width: 0%; height: 100%;
+      background: linear-gradient(90deg, var(--purple), var(--cyan), var(--pink));
+      transition: width .2s ease;
+    }
+    .status { color: var(--muted); }
+    .error {
+      margin-top: 10px; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid rgba(251,113,133,.6); color: #ffd5de;
+      background: rgba(80, 20, 40, .35); display: none;
     }
     canvas {
-      width: 100%; height: 170px; border-radius: 10px; margin-top: 10px;
-      border: 1px solid rgba(34,211,238,.4); background: #0a0a16;
+      width: 100%; height: clamp(170px, 30vw, 270px);
+      border: 1px solid rgba(168,85,247,.3); border-radius: 12px;
+      background: linear-gradient(180deg, #0a0a18, #070713);
     }
-    @media (max-width: 600px) { body { padding: 10px; } .card { padding: 12px; } }
+    .timeline { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+    input[type="range"] { width: 100%; accent-color: var(--cyan); }
+    .advanced details { border: 1px solid rgba(34,211,238,.25); border-radius: 10px; padding: 8px 10px; }
+    .advancedGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 8px; }
+    .label { display: block; color: var(--muted); font-size: .92rem; margin-bottom: 6px; }
+    input[type="number"] {
+      width: 100%; background: #111126; color: var(--text);
+      border: 1px solid rgba(236,72,153,.35); padding: 8px;
+    }
+    .small { font-size: .86rem; color: var(--muted); }
+    @media (max-width: 720px) { .row button { flex: 1 1 calc(50% - 8px); } }
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="card">
-      <h1>🎵 Pollinations AI Music Generator</h1>
-      <p class="sub">Real AI generation in-browser (no API keys). For long songs, it generates multiple AI segments and stitches them into one buffer.</p>
-      <textarea id="prompt" placeholder="Example: a chill lo-fi hip hop beat at 80 BPM, 10 minutes long, relaxing"></textarea>
+      <h1>🎵 AI Music Generator</h1>
+      <div class="sub">Powered by Pollinations AI • no API key required</div>
+    </section>
+
+    <section class="card">
+      <textarea id="prompt" placeholder="Describe your music... e.g. chill lo-fi hip hop, 20 minutes, 80 BPM"></textarea>
       <div class="chips" id="chips"></div>
-      <div class="row">
-        <button id="generateBtn">Generate Music</button>
-        <button id="playBtn" class="ghost" disabled>Play</button>
-        <button id="pauseBtn" class="ghost" disabled>Pause</button>
-        <button id="stopBtn" class="ghost" disabled>Stop</button>
-        <button id="downloadBtn" class="ghost" disabled>Download WAV</button>
+      <div class="row" style="margin-top:10px;">
+        <button id="generateBtn" class="primary">Generate Music</button>
+        <button id="playBtn" class="ghost" disabled>▶ Play</button>
+        <button id="pauseBtn" class="ghost" disabled>⏸ Pause</button>
+        <button id="stopBtn" class="ghost" disabled>⏹ Stop</button>
+        <button id="backBtn" class="ghost" disabled>◀◀ 15s</button>
+        <button id="fwdBtn" class="ghost" disabled>15s ▶▶</button>
       </div>
       <div class="meta">
-        <div class="pill" id="endpointInfo">Endpoint: pending</div>
-        <div class="pill" id="durationInfo">Duration target: pending</div>
-        <div class="pill" id="modeInfo">Mode: waiting</div>
+        <div class="pill" id="nowInfo">🎵 Generating: Waiting</div>
+        <div class="pill" id="durInfo">Duration: —</div>
+        <div class="pill" id="segInfo">Segments: —</div>
       </div>
       <div class="status" id="status">Ready.</div>
-      <div class="progressOuter"><div class="progressInner" id="progress"></div></div>
-      <div class="error" id="errorBox">
-        <div id="errorText"></div>
-        <div style="margin-top:8px;"><button id="retryBtn" class="ghost">Retry</button></div>
+      <div class="progressOuter"><div id="progress" class="progressInner"></div></div>
+      <div class="small" id="progressMeta">Segment 0 of 0 • ETA —</div>
+      <div id="errorBox" class="error">
+        <div id="errorText">Something went wrong.</div>
+        <div style="margin-top:8px"><button id="retryBtn" class="ghost">Retry</button></div>
       </div>
     </section>
 
     <section class="card">
-      <h2 style="margin:0 0 8px;">Visualizer & Playback</h2>
-      <canvas id="viz" width="960" height="260"></canvas>
-      <div class="status" id="playbackStatus">Playback: stopped</div>
-      <div class="progressOuter"><div class="progressInner" id="playbackProgress"></div></div>
+      <canvas id="visualizer" width="1200" height="260"></canvas>
+      <div class="timeline" style="margin-top:8px;">
+        <span id="elapsed">00:00</span>
+        <input id="seek" type="range" min="0" max="100" step="0.1" value="0" />
+        <span id="total">00:00</span>
+      </div>
+    </section>
+
+    <section class="card advanced">
+      <details>
+        <summary>⚙ Advanced Settings</summary>
+        <div class="advancedGrid">
+          <label>
+            <span class="label">Duration (minutes): <strong id="durLabel">10</strong></span>
+            <input id="durationSlider" type="range" min="10" max="120" value="10" />
+          </label>
+          <label>
+            <span class="label">BPM Override (optional)</span>
+            <input id="bpmOverride" type="number" min="40" max="220" step="1" placeholder="Auto from prompt" />
+          </label>
+          <label>
+            <span class="label">Volume: <strong id="volLabel">80%</strong></span>
+            <input id="volumeSlider" type="range" min="0" max="100" value="80" />
+          </label>
+          <div>
+            <span class="label">Output</span>
+            <button id="downloadBtn" class="ghost" disabled>⬇ Download WAV</button>
+            <button id="regenBtn" class="ghost" disabled style="margin-left:8px;">🔄 Regenerate</button>
+            <div class="small" id="endpoint">Endpoint: https://gen.pollinations.ai/audio/{prompt}</div>
+          </div>
+        </div>
+      </details>
     </section>
   </main>
 
@@ -115,91 +170,101 @@
     const $ = (id) => document.getElementById(id);
 
     const EXAMPLES = [
-      'a chill lo-fi hip hop beat at 80 BPM, 10 minutes long, relaxing',
-      'cinematic ambient soundtrack, 15 min, evolving and emotional',
-      'upbeat synthwave track 120 bpm, 12 minutes, neon city night drive',
-      'deep focus piano and soft strings, 20 minutes, calm and minimal'
+      'chill lo-fi hip hop, 20 minutes, 80 bpm',
+      'epic cinematic orchestral, 15 min, 110 bpm',
+      'ambient relaxing drone, 30 minutes',
+      'jazz piano smooth acoustic, 12 min, 95 bpm',
+      'edm dance upbeat synth, 10 minutes, 128 bpm'
     ];
-
-    const ENDPOINTS = [
-      {
-        name: 'Pollinations OpenAI POST',
-        type: 'post-openai',
-        model: 'openai-audio',
-        buildRequest: (prompt) => ({
-          url: 'https://text.pollinations.ai/openai',
-          options: {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'openai-audio',
-              modalities: ['text', 'audio'],
-              audio: { voice: 'alloy', format: 'wav' },
-              messages: [{ role: 'user', content: prompt }]
-            })
-          }
-        })
-      },
-      {
-        name: 'Pollinations Text GET',
-        type: 'get-text',
-        model: 'openai-audio',
-        buildRequest: (prompt) => ({
-          url: `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai-audio&voice=alloy`,
-          options: { method: 'GET' }
-        })
-      },
-      {
-        name: 'Pollinations Audio GET',
-        type: 'get-audio',
-        model: 'audio.pollinations.ai',
-        buildRequest: (prompt) => ({
-          url: `https://audio.pollinations.ai/${encodeURIComponent(prompt)}`,
-          options: { method: 'GET' }
-        })
-      }
-    ];
+    const SEGMENT_SECONDS_EST = 45;
+    const FETCH_BATCH = 3;
+    const MAX_RETRIES = 2;
 
     const state = {
       audioCtx: null,
       analyser: null,
+      compressor: null,
+      gain: null,
       source: null,
       fullBuffer: null,
-      endpointUsed: 'none',
-      playbackStartTime: 0,
+      playbackStartedAt: 0,
       pausedAt: 0,
       raf: 0,
-      retryFn: null
+      tick: 0,
+      isPlaying: false,
+      lastPrompt: '',
+      retryFn: null,
+      durationTouched: false
     };
-    const DEFAULT_MINUTES = 3;
-    const DEFAULT_BPM = 90;
-    const SEGMENT_SECONDS = 45;
-    const VISUALIZER_BAR_WIDTH_MULTIPLIER = 2.8;
-    const VISUALIZER_BIN_STEP = 3;
 
-    function setStatus(text, ok = false) {
-      const el = $('status');
-      el.textContent = text;
-      el.classList.toggle('ok', !!ok);
+    const keywordMap = [
+      [/\blo\s*-?fi\b|\bchill\b/i, 'lofi hip hop chill relaxing study beats'],
+      [/\bjazz\b/i, 'jazz piano smooth acoustic'],
+      [/\bedm\b|\belectronic\b|\bdance\b/i, 'electronic dance music upbeat synth'],
+      [/\bambient\b|\brelaxing\b/i, 'ambient atmospheric relaxing calm drone'],
+      [/\bepic\b|\bcinematic\b/i, 'epic cinematic orchestral dramatic'],
+      [/\bdark\b/i, 'dark atmospheric minor key mysterious'],
+      [/\bpop\b|\bupbeat\b|\bhappy\b/i, 'pop upbeat bright cheerful'],
+      [/\bhip\s*hop\b|\btrap\b/i, 'hip hop trap beat 808 bass'],
+      [/\bpiano\b/i, 'solo piano emotional beautiful']
+    ];
+
+    function ensureAudio() {
+      if (!state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        state.gain = state.audioCtx.createGain();
+        state.gain.gain.value = Number($('volumeSlider').value) / 100;
+        state.analyser = state.audioCtx.createAnalyser();
+        state.analyser.fftSize = 2048;
+        state.analyser.smoothingTimeConstant = 0.8;
+        state.compressor = state.audioCtx.createDynamicsCompressor();
+        state.gain.connect(state.analyser);
+        state.analyser.connect(state.compressor);
+        state.compressor.connect(state.audioCtx.destination);
+      }
+      return state.audioCtx;
     }
 
-    function setProgress(percent) {
-      $('progress').style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    function parseBpm(prompt) {
+      const match = prompt.match(/(?:\btempo\b|\bbpm\b)?\s*(\d{2,3})\s*\b(?:bpm)?\b/i);
+      const fromNearBpm = prompt.match(/(\d{2,3})\s*(?:bpm|tempo)/i);
+      const bpm = Number((fromNearBpm && fromNearBpm[1]) || (match && match[1]) || 90);
+      return Math.min(220, Math.max(40, Number.isFinite(bpm) ? bpm : 90));
     }
 
-    function setPlaybackProgress(percent) {
-      $('playbackProgress').style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    function parseDurationMinutes(prompt) {
+      const minMatch = prompt.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/i);
+      const hourMatch = prompt.match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i);
+      let minutes = 10;
+      if (hourMatch) minutes = Number(hourMatch[1]) * 60;
+      else if (minMatch) minutes = Number(minMatch[1]);
+      if (!Number.isFinite(minutes)) minutes = 10;
+      return Math.max(10, Math.round(minutes));
     }
 
-    function showError(message, retryFn = null) {
-      $('errorText').textContent = message;
+    function enrichPrompt(prompt, bpm) {
+      const parts = [];
+      for (const [regex, enriched] of keywordMap) if (regex.test(prompt)) parts.push(enriched);
+      const flavor = parts.length ? parts.join(', ') : 'cinematic instrumental evolving arrangement';
+      return `${prompt}. ${flavor}. ${bpm} BPM. high quality instrumental music.`;
+    }
+
+    function formatTime(sec) {
+      if (!Number.isFinite(sec)) return '00:00';
+      const s = Math.max(0, Math.floor(sec));
+      const m = Math.floor(s / 60);
+      return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }
+
+    function setProgress(pct, segDone, segTotal, etaSec) {
+      $('progress').style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      $('progressMeta').textContent = `Segment ${segDone} of ${segTotal} • ETA ${etaSec > 0 ? `~${Math.ceil(etaSec)}s` : '—'}`;
+    }
+
+    function showError(msg, retryFn) {
+      state.retryFn = retryFn || null;
+      $('errorText').textContent = msg;
       $('errorBox').style.display = 'block';
-      state.retryFn = retryFn;
-    }
-
-    function safeStopSource(context) {
-      if (!state.source) return;
-      try { state.source.stop(); } catch (err) { console.debug(`${context} stop() ignored:`, err); }
     }
 
     function clearError() {
@@ -207,349 +272,314 @@
       state.retryFn = null;
     }
 
-    function parseDurationMinutes(prompt) {
-      const text = prompt.toLowerCase();
-      const mins = text.match(/(\d+(?:\.\d+)?)\s*(minutes|minute|mins|min)\b/);
-      if (mins) return Math.max(1, Number(mins[1]));
-      const hrs = text.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr)\b/);
-      if (hrs) return Math.max(1, Number(hrs[1]) * 60);
-      return DEFAULT_MINUTES;
-    }
-
-    function parseBpm(prompt) {
-      const bpm = prompt.toLowerCase().match(/(\d{2,3})\s*bpm\b/);
-      if (bpm) return Math.max(50, Math.min(200, Number(bpm[1])));
-      return DEFAULT_BPM;
-    }
-
-    function buildSegmentPrompt(basePrompt, segmentIndex, totalSegments) {
-      return `${basePrompt}. Segment ${segmentIndex + 1} of ${totalSegments}. Continue same style and key with subtle variation.`;
-    }
-
-    function base64ToArrayBuffer(base64) {
-      const binary = atob(base64);
-      return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
-    }
-
-    async function getAudioBufferFromResponse(response, endpointType) {
-      const ct = (response.headers.get('content-type') || '').toLowerCase();
-      // post-openai returns JSON with base64 data; GET endpoints usually return raw audio bytes.
-      if (endpointType === 'post-openai' || ct.includes('application/json') || ct.includes('text/plain')) {
-        const data = await response.json();
-        const b64 = data?.choices?.[0]?.message?.audio?.data || data?.audio?.data || data?.data;
-        if (!b64 || typeof b64 !== 'string') throw new Error('No base64 audio returned');
-        return base64ToArrayBuffer(b64);
+    function updateTransportButtons(enabled) {
+      for (const id of ['playBtn', 'pauseBtn', 'stopBtn', 'backBtn', 'fwdBtn', 'downloadBtn', 'regenBtn']) {
+        $(id).disabled = !enabled;
       }
-      return await response.arrayBuffer();
     }
 
-    async function fetchOnePollinationsSegment(prompt) {
-      const failures = [];
-      for (const endpoint of ENDPOINTS) {
+    async function fetchWithRetry(url, retries = MAX_RETRIES) {
+      for (let attempt = 0; attempt <= retries; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
         try {
-          const req = endpoint.buildRequest(prompt);
-          const response = await fetch(req.url, req.options);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const audioData = await getAudioBufferFromResponse(response, endpoint.type);
-          state.endpointUsed = `${endpoint.name} (${endpoint.model})`;
-          $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
-          return audioData;
+          const res = await fetch(url, { signal: controller.signal, mode: 'cors' });
+          clearTimeout(timeout);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.arrayBuffer();
         } catch (err) {
-          failures.push(`${endpoint.name}: ${err.message}`);
+          clearTimeout(timeout);
+          if (attempt >= retries) throw err;
+          await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
         }
       }
-      throw new Error(`All Pollinations endpoints failed. ${failures.join(' | ')}`);
+      throw new Error('Unreachable');
     }
 
-    function ensureAudioCtx() {
-      if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      return state.audioCtx;
+    function makeSegmentPrompt(basePrompt, index) {
+      const suffixes = ['intro', 'verse', 'chorus', 'bridge', 'verse variation', 'chorus build', 'drop', 'breakdown', 'outro fade'];
+      return `${basePrompt} ${suffixes[index % suffixes.length]} section ${index + 1}`;
     }
 
-    async function decodeAudio(arrayBuffer) {
-      const ctx = ensureAudioCtx();
-      const cloned = arrayBuffer.slice(0);
-      return await ctx.decodeAudioData(cloned);
+    async function generateSegments(basePrompt, durationMinutes) {
+      const ctx = ensureAudio();
+      const segmentCount = Math.ceil((durationMinutes * 60) / SEGMENT_SECONDS_EST);
+      const buffers = new Array(segmentCount);
+      const started = performance.now();
+      let loaded = 0;
+
+      for (let batchStart = 0; batchStart < segmentCount; batchStart += FETCH_BATCH) {
+        const batchEnd = Math.min(segmentCount, batchStart + FETCH_BATCH);
+        const jobs = [];
+        for (let i = batchStart; i < batchEnd; i += 1) {
+          jobs.push((async () => {
+            const prompt = makeSegmentPrompt(basePrompt, i);
+            const url = `https://gen.pollinations.ai/audio/${encodeURIComponent(prompt)}`;
+            const binary = await fetchWithRetry(url);
+            const decoded = await ctx.decodeAudioData(binary.slice(0));
+            buffers[i] = decoded;
+            loaded += 1;
+            const pct = (loaded / segmentCount) * 100;
+            const elapsed = (performance.now() - started) / 1000;
+            const avg = elapsed / loaded;
+            const eta = Math.max(0, avg * (segmentCount - loaded));
+            $('status').textContent = `Loading segment ${loaded} of ${segmentCount}...`;
+            setProgress(pct, loaded, segmentCount, eta);
+          })());
+        }
+        await Promise.all(jobs);
+      }
+      return buffers;
     }
 
     function concatAudioBuffers(buffers) {
-      if (!buffers.length) return null;
-      const sampleRate = buffers[0].sampleRate;
-      const channelCount = Math.max(...buffers.map((b) => b.numberOfChannels));
+      const ctx = ensureAudio();
+      const sampleRate = buffers[0].sampleRate || ctx.sampleRate;
+      const channels = Math.max(...buffers.map((b) => b.numberOfChannels));
       const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
-      const ctx = ensureAudioCtx();
-      const out = ctx.createBuffer(channelCount, totalLength, sampleRate);
+      const out = ctx.createBuffer(channels, totalLength, sampleRate);
       let offset = 0;
       for (const b of buffers) {
-        for (let ch = 0; ch < channelCount; ch += 1) {
-          const target = out.getChannelData(ch);
-          // When the target has more channels than the source buffer, reuse the source's last channel.
-          if (b.numberOfChannels > 0) {
-            const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
-            target.set(src, offset);
-          }
+        for (let ch = 0; ch < channels; ch += 1) {
+          const src = b.getChannelData(Math.min(ch, b.numberOfChannels - 1));
+          out.getChannelData(ch).set(src, offset);
         }
         offset += b.length;
       }
       return out;
     }
 
-    function createProceduralFallback(seconds, bpm) {
-      const ctx = ensureAudioCtx();
-      const sr = ctx.sampleRate;
-      const length = Math.floor(seconds * sr);
-      const out = ctx.createBuffer(2, length, sr);
-      const beat = 60 / bpm;
-      const kickHz = 55;
-      const bassHz = 82.41;
-      for (let ch = 0; ch < 2; ch += 1) {
-        const data = out.getChannelData(ch);
-        for (let i = 0; i < length; i += 1) {
-          const t = i / sr;
-          const beatPos = (t % beat) / beat;
-          const barPos = (t % (beat * 4)) / (beat * 4);
-          const kickEnv = Math.exp(-beatPos * 16) * (beatPos < 0.22 ? 1 : 0);
-          const snareTrig = ((t + beat * 0.5) % beat) / beat;
-          const snareEnv = Math.exp(-snareTrig * 25) * (snareTrig < 0.12 ? 1 : 0);
-          const hat = ((Math.random() * 2 - 1) * 0.05) * (1 - ((t * 8) % 1));
-          const kick = Math.sin(2 * Math.PI * kickHz * t * (1 - beatPos * 0.6)) * kickEnv * 0.65;
-          const bass = Math.sin(2 * Math.PI * (bassHz + 24 * Math.sin(barPos * Math.PI * 2)) * t) * 0.22;
-          const pad = (Math.sin(2 * Math.PI * 220 * t) + Math.sin(2 * Math.PI * 330 * t)) * 0.08;
-          const snare = (Math.random() * 2 - 1) * snareEnv * 0.22;
-          data[i] = Math.max(-1, Math.min(1, kick + bass + pad + snare + hat));
-        }
-      }
-      return out;
-    }
-
-    async function generateSong() {
-      clearError();
-      setPlaybackProgress(0);
-      const prompt = $('prompt').value.trim();
-      if (!prompt) return showError('Please enter a prompt.', null);
-
-      const minutes = parseDurationMinutes(prompt);
-      const bpm = parseBpm(prompt);
-      const totalSeconds = Math.round(minutes * 60);
-      $('durationInfo').textContent = `Duration target: ~${minutes.toFixed(1)} min (${totalSeconds}s)`;
-
-      $('generateBtn').disabled = true;
-      $('playBtn').disabled = true;
-      $('pauseBtn').disabled = true;
-      $('stopBtn').disabled = true;
-      $('downloadBtn').disabled = true;
-
-      const segmentsNeeded = Math.max(1, Math.ceil(totalSeconds / SEGMENT_SECONDS));
-      const decoded = [];
-
-      try {
-        $('modeInfo').textContent = 'Mode: Pollinations AI';
-        setStatus('AI generating...', false);
-
-        for (let i = 0; i < segmentsNeeded; i += 1) {
-          setStatus(`AI generating... segment ${i + 1}/${segmentsNeeded}`);
-          setProgress((i / segmentsNeeded) * 100);
-          const segmentPrompt = buildSegmentPrompt(prompt, i, segmentsNeeded);
-          const rawAudio = await fetchOnePollinationsSegment(segmentPrompt);
-          const audioBuffer = await decodeAudio(rawAudio);
-          decoded.push(audioBuffer);
-        }
-
-        state.fullBuffer = concatAudioBuffers(decoded);
-        setProgress(100);
-        setStatus('AI generation complete.', true);
-      } catch (err) {
-        setStatus('AI failed, switching to procedural fallback...');
-        $('modeInfo').textContent = 'Mode: Procedural fallback';
-        state.endpointUsed = 'fallback (Web Audio synthesis)';
-        $('endpointInfo').textContent = `Endpoint: ${state.endpointUsed}`;
-        state.fullBuffer = createProceduralFallback(totalSeconds, bpm);
-        setProgress(100);
-        console.warn('Pollinations endpoints failed; fallback enabled:', err);
-        showError('Pollinations service is currently unavailable; using local fallback audio generation instead.', generateSong);
-      } finally {
-        $('generateBtn').disabled = false;
-      }
-
-      const hasAudio = !!state.fullBuffer;
-      $('playBtn').disabled = !hasAudio;
-      $('pauseBtn').disabled = !hasAudio;
-      $('stopBtn').disabled = !hasAudio;
-      $('downloadBtn').disabled = !hasAudio;
-      if (hasAudio) {
-        state.pausedAt = 0;
-        $('playbackStatus').textContent = `Playback: ready (${state.fullBuffer.duration.toFixed(1)}s)`;
-      }
-    }
-
-    function connectVisualizer(sourceNode) {
-      const ctx = ensureAudioCtx();
-      if (!state.analyser) {
-        state.analyser = ctx.createAnalyser();
-        state.analyser.fftSize = 2048;
-      }
-      sourceNode.connect(state.analyser);
-      state.analyser.connect(ctx.destination);
-      drawVisualizer();
-    }
-
     function stopPlayback() {
       if (state.source) {
-        safeStopSource('stopPlayback');
+        try { state.source.stop(); } catch (_) {}
         state.source.disconnect();
+        state.source = null;
       }
-      state.source = null;
+      state.isPlaying = false;
       cancelAnimationFrame(state.raf);
-      state.raf = 0;
-      state.pausedAt = 0;
-      setPlaybackProgress(0);
-      $('playbackStatus').textContent = 'Playback: stopped';
+      clearInterval(state.tick);
     }
 
-    async function play(startOffset = null) {
+    function play(offsetSeconds = state.pausedAt || 0) {
       if (!state.fullBuffer) return;
-      const ctx = ensureAudioCtx();
-      await ctx.resume();
-      if (state.source) {
-        safeStopSource('play restart');
-      }
+      const ctx = ensureAudio();
+      if (ctx.state === 'suspended') ctx.resume();
+      stopPlayback();
       const src = ctx.createBufferSource();
       src.buffer = state.fullBuffer;
-      connectVisualizer(src);
+      src.connect(state.gain);
+      const now = ctx.currentTime;
+      state.playbackStartedAt = now - offsetSeconds;
       state.source = src;
-      const offset = startOffset ?? state.pausedAt ?? 0;
-      state.playbackStartTime = ctx.currentTime - offset;
-      src.start(0, offset);
+      state.isPlaying = true;
+      src.start(now, Math.max(0, offsetSeconds));
       src.onended = () => {
-        if (!state.source) return;
-        state.source = null;
-        state.pausedAt = 0;
-        setPlaybackProgress(100);
-        $('playbackStatus').textContent = 'Playback: finished';
+        if (state.isPlaying) {
+          state.pausedAt = 0;
+          state.isPlaying = false;
+          $('seek').value = '0';
+          $('elapsed').textContent = '00:00';
+          $('status').textContent = 'Playback ended.';
+        }
       };
-      $('playbackStatus').textContent = 'Playback: playing';
-      updatePlaybackProgressLoop();
+      $('status').textContent = 'Playing...';
+      runVisualizer();
+      startTick();
     }
 
     function pause() {
-      const ctx = ensureAudioCtx();
-      if (!state.source || !state.fullBuffer) return;
-      state.pausedAt = Math.max(0, ctx.currentTime - state.playbackStartTime);
-      safeStopSource('pause');
-      state.source = null;
-      $('playbackStatus').textContent = `Playback: paused at ${state.pausedAt.toFixed(1)}s`;
+      if (!state.isPlaying || !state.audioCtx) return;
+      state.pausedAt = Math.max(0, state.audioCtx.currentTime - state.playbackStartedAt);
+      stopPlayback();
+      $('status').textContent = 'Paused.';
     }
 
-    function updatePlaybackProgressLoop() {
-      if (!state.fullBuffer || !state.source) return;
-      const ctx = ensureAudioCtx();
-      const elapsed = Math.max(0, ctx.currentTime - state.playbackStartTime);
-      const pct = (elapsed / state.fullBuffer.duration) * 100;
-      setPlaybackProgress(pct);
-      if (pct < 100 && state.source) state.raf = requestAnimationFrame(updatePlaybackProgressLoop);
+    function seekTo(seconds) {
+      if (!state.fullBuffer) return;
+      state.pausedAt = Math.max(0, Math.min(seconds, state.fullBuffer.duration));
+      if (state.isPlaying) play(state.pausedAt);
+      else $('elapsed').textContent = formatTime(state.pausedAt);
     }
 
-    function drawVisualizer() {
-      if (!state.analyser) return;
-      const canvas = $('viz');
-      const c = canvas.getContext('2d');
-      const bins = new Uint8Array(state.analyser.frequencyBinCount);
+    function currentPlaybackTime() {
+      if (!state.fullBuffer || !state.audioCtx) return state.pausedAt || 0;
+      return state.isPlaying ? Math.max(0, state.audioCtx.currentTime - state.playbackStartedAt) : (state.pausedAt || 0);
+    }
 
-      const loop = () => {
-        if (!state.analyser) return;
-        state.analyser.getByteFrequencyData(bins);
-        c.clearRect(0, 0, canvas.width, canvas.height);
-        const grad = c.createLinearGradient(0, 0, canvas.width, 0);
-        grad.addColorStop(0, '#22d3ee');
-        grad.addColorStop(0.5, '#a855f7');
+    function runVisualizer() {
+      const canvas = $('visualizer');
+      const g = canvas.getContext('2d');
+      const analyser = state.analyser;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const draw = () => {
+        state.raf = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(data);
+        g.clearRect(0, 0, canvas.width, canvas.height);
+        const grad = g.createLinearGradient(0, 0, canvas.width, 0);
+        grad.addColorStop(0, '#a855f7');
+        grad.addColorStop(0.5, '#22d3ee');
         grad.addColorStop(1, '#ec4899');
-        c.fillStyle = grad;
-        const barW = canvas.width / bins.length * VISUALIZER_BAR_WIDTH_MULTIPLIER;
-        let x = 0;
-        for (let i = 0; i < bins.length; i += VISUALIZER_BIN_STEP) {
-          const h = (bins[i] / 255) * canvas.height;
-          c.fillRect(x, canvas.height - h, barW, h);
-          x += barW + 1;
-          if (x > canvas.width) break;
+        g.fillStyle = grad;
+        const bars = 90;
+        const step = Math.max(1, Math.floor(data.length / bars));
+        const barW = canvas.width / bars;
+        for (let i = 0; i < bars; i += 1) {
+          const val = data[i * step] / 255;
+          const h = Math.pow(val, 1.2) * canvas.height;
+          g.fillRect(i * barW + 1, canvas.height - h, Math.max(1, barW - 2), h);
         }
-        state.raf = requestAnimationFrame(loop);
       };
-      cancelAnimationFrame(state.raf);
-      state.raf = requestAnimationFrame(loop);
+      draw();
+    }
+
+    function startTick() {
+      clearInterval(state.tick);
+      state.tick = setInterval(() => {
+        if (!state.fullBuffer || !state.audioCtx) return;
+        const current = state.isPlaying ? Math.max(0, state.audioCtx.currentTime - state.playbackStartedAt) : state.pausedAt;
+        const pct = (current / state.fullBuffer.duration) * 100;
+        $('seek').value = String(Math.max(0, Math.min(100, pct)));
+        $('elapsed').textContent = formatTime(current);
+      }, 100);
     }
 
     function audioBufferToWav(buffer) {
       const numChannels = buffer.numberOfChannels;
       const sampleRate = buffer.sampleRate;
-      const format = 1;
-      const bitDepth = 16;
-      const numSamples = buffer.length;
-      const blockAlign = numChannels * bitDepth / 8;
-      const byteRate = sampleRate * blockAlign;
-      const dataSize = numSamples * blockAlign;
+      const bits = 16;
+      const blockAlign = (numChannels * bits) / 8;
+      const dataSize = buffer.length * blockAlign;
       const out = new ArrayBuffer(44 + dataSize);
       const view = new DataView(out);
-
-      const writeString = (offset, s) => { for (let i = 0; i < s.length; i += 1) view.setUint8(offset + i, s.charCodeAt(i)); };
-      writeString(0, 'RIFF');
+      const write = (offset, str) => { for (let i = 0; i < str.length; i += 1) view.setUint8(offset + i, str.charCodeAt(i)); };
+      write(0, 'RIFF');
       view.setUint32(4, 36 + dataSize, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
+      write(8, 'WAVE');
+      write(12, 'fmt ');
       view.setUint32(16, 16, true);
-      view.setUint16(20, format, true);
+      view.setUint16(20, 1, true);
       view.setUint16(22, numChannels, true);
       view.setUint32(24, sampleRate, true);
-      view.setUint32(28, byteRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
       view.setUint16(32, blockAlign, true);
-      view.setUint16(34, bitDepth, true);
-      writeString(36, 'data');
+      view.setUint16(34, bits, true);
+      write(36, 'data');
       view.setUint32(40, dataSize, true);
-
-      let offset = 44;
-      for (let i = 0; i < numSamples; i += 1) {
+      let off = 44;
+      for (let i = 0; i < buffer.length; i += 1) {
         for (let ch = 0; ch < numChannels; ch += 1) {
-          const sample = buffer.getChannelData(ch)[i] || 0;
-          const s = Math.max(-1, Math.min(1, sample));
-          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-          offset += 2;
+          const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i] || 0));
+          view.setInt16(off, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          off += 2;
         }
       }
       return new Blob([out], { type: 'audio/wav' });
     }
 
-    function downloadWav() {
-      if (!state.fullBuffer) return;
-      const blob = audioBufferToWav(state.fullBuffer);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pollinations-ai-music.wav';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    async function generateMusic() {
+      clearError();
+      updateTransportButtons(false);
+      $('progress').style.width = '0%';
+      const prompt = $('prompt').value.trim();
+      if (!prompt) return showError('Please describe the music you want.', generateMusic);
+      state.lastPrompt = prompt;
+
+      const durationFromPrompt = parseDurationMinutes(prompt);
+      const durationOverride = Number($('durationSlider').value) || 10;
+      const minutes = Math.max(10, state.durationTouched ? durationOverride : durationFromPrompt);
+      const bpm = Number($('bpmOverride').value) || parseBpm(prompt);
+      const basePrompt = enrichPrompt(prompt, bpm);
+      const segmentCount = Math.ceil((minutes * 60) / SEGMENT_SECONDS_EST);
+
+      $('nowInfo').textContent = `🎵 Generating: ${basePrompt.slice(0, 52)}${basePrompt.length > 52 ? '…' : ''}`;
+      $('durInfo').textContent = `Duration: ${minutes} min • ${bpm} BPM`;
+      $('segInfo').textContent = `Segments: ${segmentCount}`;
+      $('status').textContent = 'Starting generation...';
+
+      try {
+        $('generateBtn').disabled = true;
+        const segments = await generateSegments(basePrompt, minutes);
+        state.fullBuffer = concatAudioBuffers(segments);
+        $('total').textContent = formatTime(state.fullBuffer.duration);
+        $('status').textContent = `Ready. Generated ${segments.length} segments.`;
+        setProgress(100, segments.length, segments.length, 0);
+        state.pausedAt = 0;
+        $('seek').value = '0';
+        $('elapsed').textContent = '00:00';
+        updateTransportButtons(true);
+      } catch (err) {
+        console.error(err);
+        $('status').textContent = 'Generation failed.';
+        showError('Could not fetch/decode some audio segments. Please retry — slow or unstable connections can fail mid-stream.', generateMusic);
+      } finally {
+        $('generateBtn').disabled = false;
+      }
     }
 
-    function initChips() {
-      const container = $('chips');
+    function init() {
       EXAMPLES.forEach((text) => {
         const b = document.createElement('button');
         b.className = 'chip';
-        b.textContent = text;
         b.type = 'button';
+        b.textContent = text;
         b.addEventListener('click', () => { $('prompt').value = text; });
-        container.appendChild(b);
+        $('chips').appendChild(b);
       });
+
+      $('durationSlider').addEventListener('input', () => {
+        state.durationTouched = true;
+        $('durLabel').textContent = $('durationSlider').value;
+      });
+      $('volumeSlider').addEventListener('input', () => {
+        const v = Number($('volumeSlider').value);
+        $('volLabel').textContent = `${v}%`;
+        if (state.gain) state.gain.gain.value = v / 100;
+      });
+
+      $('generateBtn').addEventListener('click', generateMusic);
+      $('playBtn').addEventListener('click', () => play());
+      $('pauseBtn').addEventListener('click', pause);
+      $('stopBtn').addEventListener('click', () => {
+        stopPlayback();
+        state.pausedAt = 0;
+        $('seek').value = '0';
+        $('elapsed').textContent = '00:00';
+        $('status').textContent = 'Stopped.';
+      });
+      $('backBtn').addEventListener('click', () => seekTo(currentPlaybackTime() - 15));
+      $('fwdBtn').addEventListener('click', () => seekTo(currentPlaybackTime() + 15));
+      $('seek').addEventListener('input', () => {
+        if (!state.fullBuffer) return;
+        const sec = (Number($('seek').value) / 100) * state.fullBuffer.duration;
+        state.pausedAt = sec;
+        $('elapsed').textContent = formatTime(sec);
+      });
+      $('seek').addEventListener('change', () => seekTo(state.pausedAt || 0));
+      $('downloadBtn').addEventListener('click', () => {
+        if (!state.fullBuffer) return;
+        const blob = audioBufferToWav(state.fullBuffer);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pollinations-music.wav';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1200);
+      });
+      $('regenBtn').addEventListener('click', () => {
+        if (state.lastPrompt) {
+          $('prompt').value = state.lastPrompt;
+          generateMusic();
+        }
+      });
+      $('retryBtn').addEventListener('click', () => state.retryFn && state.retryFn());
+
+      $('durLabel').textContent = $('durationSlider').value;
+      $('volLabel').textContent = `${$('volumeSlider').value}%`;
     }
 
-    $('generateBtn').addEventListener('click', generateSong);
-    $('playBtn').addEventListener('click', () => play());
-    $('pauseBtn').addEventListener('click', pause);
-    $('stopBtn').addEventListener('click', stopPlayback);
-    $('downloadBtn').addEventListener('click', downloadWav);
-    $('retryBtn').addEventListener('click', () => state.retryFn && state.retryFn());
-
-    initChips();
+    init();
   </script>
 </body>
 </html>
