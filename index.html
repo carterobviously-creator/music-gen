@@ -312,7 +312,7 @@
     }
 
     function hashSeed(input) {
-      if (!input) return (Date.now() & 0xFFFFFFFF) >>> 0;
+      if (input === undefined || input === null || input === '') return (Date.now() & 0xFFFFFFFF) >>> 0;
       let h = 2166136261 >>> 0;
       const str = String(input);
       for (let i = 0; i < str.length; i += 1) {
