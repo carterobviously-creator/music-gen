@@ -124,6 +124,8 @@
       <div class="status" id="status">Ready.</div>
       <div class="progressOuter"><div id="progress" class="progressInner"></div></div>
       <div class="small" id="progressMeta">Segment 0 of 0 | ETA —</div>
+      <div class="small" id="segmentStatus">—</div>
+      <div class="small" id="tipStatus">Tip: If segments fail, try a slower connection or click Retry.</div>
       <div id="errorBox" class="error">
         <div id="errorText">Something went wrong.</div>
         <div style="margin-top:8px"><button id="retryBtn" class="ghost">Retry</button></div>
@@ -185,10 +187,13 @@
     const MAX_DURATION_MINUTES = 120;
     const MIN_SAFE_DURATION_MINUTES = 0.1;
     const SKIP_SECONDS = 15;
-    const FETCH_BATCH = 3;
-    const MAX_RETRIES = 2;
-    const FETCH_TIMEOUT_MS = 25000;
-    const RETRY_BACKOFF_BASE_MS = 800;
+    const SEGMENT_BATCH_SIZE = 1;
+    const MAX_RETRIES = 5;
+    const FETCH_RETRIES_PER_DECODE_ATTEMPT = 3;
+    const FETCH_TIMEOUT_MS = 45000;
+    const MIN_VALID_RESPONSE_BYTES = 1000; // Very small bodies are typically HTML/error responses, not playable audio.
+    const FETCH_RETRY_MAX_DELAY_MS = 16000;
+    const DECODE_RETRY_BASE_DELAY_MS = 2000;
     const TICK_INTERVAL_MS = 100;
     const VISUALIZER_CURVE_EXPONENT = 1.2;
     const VISUALIZER_BAR_COUNT = 90;
@@ -212,6 +217,8 @@
       retryFn: null,
       durationTouched: false
     };
+    let cachedSegments = [];
+    let cachedSegmentsKey = '';
 
     const keywordMap = [
       [/\blo\s*-?fi\b|\bchill\b/i, 'lofi hip hop chill relaxing study beats'],
@@ -295,22 +302,42 @@
       }
     }
 
-    async function fetchWithRetry(url, retries = MAX_RETRIES) {
-      for (let attempt = 0; attempt <= retries; attempt += 1) {
+    async function fetchWithRetry(url, maxRetries = MAX_RETRIES, onRetry) {
+      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
         try {
           const res = await fetch(url, { signal: controller.signal, mode: 'cors' });
           clearTimeout(timeout);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return await res.arrayBuffer();
+          const arrayBuffer = await res.arrayBuffer();
+          if (arrayBuffer.byteLength < MIN_VALID_RESPONSE_BYTES) throw new Error('Response too small, likely an error page');
+          return arrayBuffer;
         } catch (err) {
           clearTimeout(timeout);
-          if (attempt >= retries) throw err;
-          await new Promise((r) => setTimeout(r, RETRY_BACKOFF_BASE_MS * (attempt + 1)));
+          if (attempt >= maxRetries) throw err;
+          if (typeof onRetry === 'function') onRetry(attempt + 1, maxRetries, err);
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), FETCH_RETRY_MAX_DELAY_MS);
+          await new Promise((r) => setTimeout(r, delay));
         }
       }
       throw new Error('Max retries exceeded while fetching Pollinations audio');
+    }
+
+    async function fetchAndDecodeSegment(ctx, url, maxRetries = MAX_RETRIES, onRetry) {
+      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+        try {
+          const arrayBuffer = await fetchWithRetry(url, Math.min(FETCH_RETRIES_PER_DECODE_ATTEMPT, maxRetries));
+          const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+          return audioBuffer;
+        } catch (err) {
+          if (attempt >= maxRetries) throw new Error(`Segment failed after ${maxRetries} attempts: ${err.message}`);
+          if (typeof onRetry === 'function') onRetry(attempt + 1, maxRetries, err);
+          const delay = Math.min(DECODE_RETRY_BASE_DELAY_MS * attempt, FETCH_RETRY_MAX_DELAY_MS);
+          await new Promise((r) => setTimeout(r, delay));
+        }
+      }
+      throw new Error('Segment decode retries exhausted');
     }
 
     function makeSegmentPrompt(basePrompt, index) {
@@ -322,32 +349,67 @@
       const ctx = ensureAudio();
       const safeMinutes = Number.isFinite(durationMinutes) ? Math.max(MIN_SAFE_DURATION_MINUTES, durationMinutes) : DEFAULT_DURATION_MINUTES;
       const segmentCount = Math.max(1, Math.ceil((safeMinutes * 60) / SEGMENT_SECONDS_EST));
-      const buffers = new Array(segmentCount);
+      if (cachedSegments.length !== segmentCount) cachedSegments = new Array(segmentCount);
+      const goodSegments = [];
       const started = performance.now();
-      let loaded = 0;
+      let processed = 0;
+      let failed = 0;
+      const batchSize = SEGMENT_BATCH_SIZE === 2 ? 2 : 1;
 
-      for (let batchStart = 0; batchStart < segmentCount; batchStart += FETCH_BATCH) {
-        const batchEnd = Math.min(segmentCount, batchStart + FETCH_BATCH);
+      for (let batchStart = 0; batchStart < segmentCount; batchStart += batchSize) {
+        const batchEnd = Math.min(segmentCount, batchStart + batchSize);
         const jobs = [];
         for (let i = batchStart; i < batchEnd; i += 1) {
           jobs.push((async () => {
+            if (cachedSegments[i]) {
+              processed += 1;
+              const pctCached = (processed / Math.max(1, segmentCount)) * 100;
+              const elapsedCached = (performance.now() - started) / 1000;
+              const avgCached = elapsedCached / Math.max(1, processed);
+              const etaCached = Math.max(0, avgCached * (segmentCount - processed));
+              $('status').textContent = `Loading segment ${processed} of ${segmentCount}...`;
+              $('segmentStatus').textContent = `✓ Segment ${i + 1} (cached)`;
+              setProgress(pctCached, processed, segmentCount, etaCached);
+              return { ok: true, index: i, buffer: cachedSegments[i] };
+            }
             const prompt = makeSegmentPrompt(basePrompt, i);
             const url = `https://gen.pollinations.ai/audio/${encodeURIComponent(prompt)}`;
-            const binary = await fetchWithRetry(url);
-            const decoded = await ctx.decodeAudioData(binary);
-            buffers[i] = decoded;
-            loaded += 1;
-            const pct = (loaded / Math.max(1, segmentCount)) * 100;
+            const decoded = await fetchAndDecodeSegment(ctx, url, MAX_RETRIES, (nextAttempt, maxAttempt) => {
+              $('segmentStatus').textContent = `↻ Segment ${i + 1} (retry ${nextAttempt}/${maxAttempt})...`;
+            });
+            cachedSegments[i] = decoded;
+            processed += 1;
+            const pct = (processed / Math.max(1, segmentCount)) * 100;
             const elapsed = (performance.now() - started) / 1000;
-            const avg = elapsed / loaded;
-            const eta = Math.max(0, avg * (segmentCount - loaded));
-            $('status').textContent = `Loading segment ${loaded} of ${segmentCount}...`;
-            setProgress(pct, loaded, segmentCount, eta);
-          })());
+            const avg = elapsed / Math.max(1, processed);
+            const eta = Math.max(0, avg * (segmentCount - processed));
+            $('status').textContent = `Loading segment ${processed} of ${segmentCount}...`;
+            $('segmentStatus').textContent = `✓ Segment ${i + 1}`;
+            setProgress(pct, processed, segmentCount, eta);
+            return { ok: true, index: i, buffer: decoded };
+          })().catch((err) => {
+            processed += 1;
+            const pctFailed = (processed / Math.max(1, segmentCount)) * 100;
+            const elapsedFailed = (performance.now() - started) / 1000;
+            const avgFailed = elapsedFailed / Math.max(1, processed);
+            const etaFailed = Math.max(0, avgFailed * (segmentCount - processed));
+            $('status').textContent = `Loading segment ${processed} of ${segmentCount}...`;
+            $('segmentStatus').textContent = `✖ Segment ${i + 1} failed after retries`;
+            setProgress(pctFailed, processed, segmentCount, etaFailed);
+            return { ok: false, index: i, error: err };
+          }));
         }
-        await Promise.all(jobs);
+        const results = await Promise.allSettled(jobs);
+        for (const settled of results) {
+          const result = settled.status === 'fulfilled' ? settled.value : { ok: false, error: settled.reason };
+          if (result.ok && result.buffer) goodSegments.push(result);
+          else failed += 1;
+        }
       }
-      return buffers;
+
+      goodSegments.sort((a, b) => a.index - b.index);
+      const segments = goodSegments.map((entry) => entry.buffer);
+      return { segments, failed, segmentCount };
     }
 
     function concatAudioBuffers(buffers) {
@@ -517,19 +579,34 @@
       const bpm = Number($('bpmOverride').value) || parseBpm(prompt);
       const basePrompt = enrichPrompt(prompt, bpm);
       const segmentCount = Math.ceil((minutes * 60) / SEGMENT_SECONDS_EST);
+      const nextCacheKey = `${basePrompt}::${segmentCount}`;
+      if (cachedSegmentsKey !== nextCacheKey) {
+        cachedSegments = new Array(segmentCount);
+        cachedSegmentsKey = nextCacheKey;
+      } else if (cachedSegments.length !== segmentCount) {
+        cachedSegments.length = segmentCount;
+      }
 
       $('nowInfo').textContent = `🎵 Generating: ${basePrompt.slice(0, PROMPT_PREVIEW_MAX_CHARS)}${basePrompt.length > PROMPT_PREVIEW_MAX_CHARS ? '…' : ''}`;
       $('durInfo').textContent = `Duration: ${minutes} min • ${bpm} BPM`;
       $('segInfo').textContent = `Segments: ${segmentCount}`;
       $('status').textContent = 'Starting generation...';
+      $('segmentStatus').textContent = 'Preparing segment fetch...';
 
       try {
         $('generateBtn').disabled = true;
-        const segments = await generateSegments(basePrompt, minutes);
+        const { segments, failed } = await generateSegments(basePrompt, minutes);
+        if (!segments.length) {
+          $('status').textContent = 'Generation failed.';
+          showError('No segments loaded. Please retry.', generateMusic);
+          return;
+        }
         state.fullBuffer = concatAudioBuffers(segments);
         $('total').textContent = formatTime(state.fullBuffer.duration);
-        $('status').textContent = `Ready. Generated ${segments.length} segments.`;
+        if (failed > 0) $('status').textContent = `${failed} segment${failed === 1 ? '' : 's'} skipped due to network errors — playing partial song.`;
+        else $('status').textContent = `Ready. Generated ${segments.length} segments.`;
         setProgress(100, segments.length, segments.length, 0);
+        $('segmentStatus').textContent = `✓ Loaded ${segments.length} segment${segments.length === 1 ? '' : 's'}`;
         state.pausedAt = 0;
         $('seek').value = '0';
         $('elapsed').textContent = '00:00';
