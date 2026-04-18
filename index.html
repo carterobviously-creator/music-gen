@@ -12,11 +12,6 @@
       --line:rgba(255,255,255,.14);
       --text:#f4eeff;
       --muted:#c8bfdc;
-      --pink:#ff5fd7;
-      --blue:#4ad7ff;
-      --violet:#8a6bff;
-      --shadow:0 20px 60px rgba(0,0,0,.45);
-      --radius:18px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -35,14 +30,13 @@
       position:fixed; inset:0; pointer-events:none; opacity:.10;
       background-image:radial-gradient(rgba(255,255,255,.9) 1px, transparent 1px);
       background-size:120px 120px;
-      transform:translateZ(0);
     }
     .wrap{width:min(1200px,calc(100vw - 28px)); margin:18px auto 30px}
     .topbar,.panel{
       background:var(--panel);
       border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.03);
+      border-radius:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.03);
       backdrop-filter:blur(12px);
     }
     .topbar{
@@ -51,18 +45,13 @@
     }
     .brand{
       font-size:clamp(28px,4vw,40px);
-      font-weight:900; letter-spacing:2px;
-      text-transform:uppercase;
+      font-weight:900; letter-spacing:2px; text-transform:uppercase;
       background:linear-gradient(90deg,#ff8ef3,#ffd4e8 30%,#80cfff 68%,#d2e8ff);
       -webkit-background-clip:text; background-clip:text; color:transparent;
-      text-shadow:0 0 18px rgba(255,120,220,.22);
     }
     .nav{display:flex; gap:18px; color:var(--muted); font-size:14px; flex-wrap:wrap}
-    .nav span{opacity:.95}
     .panel{padding:16px; margin-bottom:16px}
-    .grid4{
-      display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;
-    }
+    .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px}
     select,input,button,a.btn{
       width:100%;
       border-radius:12px;
@@ -73,76 +62,34 @@
       font-size:15px;
       outline:none;
     }
-    .prompt{
-      display:grid; grid-template-columns:1fr 190px; gap:12px;
-    }
+    .prompt{display:grid; grid-template-columns:1fr 190px; gap:12px}
     input::placeholder{color:#b7accd}
     button{
-      cursor:pointer;
-      font-weight:800;
+      cursor:pointer; font-weight:800;
       background:linear-gradient(90deg,#ff62d9,#8b73ff 55%,#42d7ff);
       border:none;
-      box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 0 24px rgba(130,110,255,.25);
     }
     button:disabled{opacity:.6; cursor:not-allowed}
     .desc{margin:12px 2px 0; color:var(--muted); line-height:1.45}
-    .title{
-      display:flex; align-items:center; gap:10px;
-      color:#d9d0f3; font-weight:800; margin-bottom:12px;
-    }
+    .title{font-weight:800; margin-bottom:12px; color:#d9d0f3}
     .wave{
-      position:relative;
-      min-height:230px;
-      border-radius:16px;
-      padding:16px;
-      overflow:hidden;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)),
-        radial-gradient(circle at 50% 50%, rgba(255,100,210,.12), transparent 55%);
+      min-height:230px; border-radius:16px; padding:16px; overflow:hidden;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
     }
     .wave canvas{
-      width:100%; height:170px; display:block;
-      border-radius:14px;
-      background:linear-gradient(180deg, rgba(10,10,20,.45), rgba(5,5,12,.28));
+      width:100%; height:170px; display:block; border-radius:14px;
+      background:rgba(5,5,12,.28);
       border:1px solid rgba(255,255,255,.08);
-    }
-    .progress{
-      margin-top:12px;
-      width:100%;
-      height:8px;
-      border-radius:999px;
-      background:rgba(255,255,255,.08);
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.08);
-    }
-    .bar{
-      width:0%; height:100%;
-      background:linear-gradient(90deg,#ff61d7,#ff8d89,#ffd36a,#8fe7ff,#8b73ff);
-      box-shadow:0 0 18px rgba(255,100,210,.35);
-    }
-    .time{
-      display:flex; justify-content:space-between; color:#d9d0f3; margin-top:8px; font-size:13px;
-      opacity:.9;
-    }
-    .actions{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px;
-    }
-    .secondary{
-      background:linear-gradient(180deg, rgba(39,35,61,.98), rgba(16,13,31,.98));
-      border:1px solid rgba(255,255,255,.14);
-    }
-    .footerRow{
-      display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:10px;
-    }
-    .status{color:#dacff2; font-size:14px; opacity:.95}
-    .pill{
-      border:1px solid rgba(255,255,255,.14);
-      padding:8px 12px; border-radius:999px;
-      background:rgba(255,255,255,.04);
-      color:#e8ddff;
-      font-size:13px;
     }
     audio{width:100%; margin-top:12px}
+    .footerRow{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:10px}
+    .pill{
+      border:1px solid rgba(255,255,255,.14); padding:8px 12px; border-radius:999px;
+      background:rgba(255,255,255,.04); color:#e8ddff; font-size:13px;
+    }
+    .status{color:#dacff2; font-size:14px; opacity:.95}
+    .actions{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px}
+    .secondary{background:linear-gradient(180deg, rgba(39,35,61,.98), rgba(16,13,31,.98)); border:1px solid rgba(255,255,255,.14)}
     @media (max-width: 900px){
       .grid4,.prompt,.actions{grid-template-columns:1fr}
       .topbar{gap:12px; flex-direction:column; align-items:flex-start}
@@ -153,42 +100,23 @@
   <div class="stars"></div>
   <div class="wrap">
     <div class="topbar">
-      <div class="brand">AI MUSIC GENERATOR</div>
-      <div class="nav">
-        <span>My Tracks</span>
-        <span>Favorites</span>
-        <span>Settings</span>
-      </div>
+      <div class="brand">AI Music Generator</div>
+      <div class="nav"><span>My Tracks</span><span>Favorites</span><span>Settings</span></div>
     </div>
 
     <div class="panel">
       <div class="grid4">
         <select id="genre">
-          <option>Synthwave</option>
-          <option>EDM</option>
-          <option>Lo-fi</option>
-          <option>Cinematic</option>
-          <option>Ambient</option>
-          <option>Trap</option>
+          <option>Synthwave</option><option>EDM</option><option>Lo-fi</option><option>Cinematic</option><option>Ambient</option>
         </select>
         <select id="mood">
-          <option>Dreamy</option>
-          <option>Energetic</option>
-          <option>Dark</option>
-          <option>Chill</option>
-          <option>Epic</option>
+          <option>Dreamy</option><option>Energetic</option><option>Dark</option><option>Chill</option><option>Epic</option>
         </select>
         <select id="theme">
-          <option>Neon City</option>
-          <option>Space</option>
-          <option>Retro Arcade</option>
-          <option>Cyberpunk</option>
-          <option>Midnight Drive</option>
+          <option>Neon City</option><option>Space</option><option>Retro Arcade</option><option>Cyberpunk</option><option>Midnight Drive</option>
         </select>
         <select id="tempo">
-          <option>Medium</option>
-          <option>Slow</option>
-          <option>Fast</option>
+          <option>Medium</option><option>Slow</option><option>Fast</option>
         </select>
       </div>
 
@@ -197,23 +125,19 @@
         <button id="generateBtn">Generate</button>
       </div>
 
-      <div class="desc" id="desc">
-        A nostalgic synthwave track with lush melodies, driving bass, and a retro 80s vibe.
-      </div>
+      <div class="desc" id="desc">A nostalgic synthwave track with lush melodies, driving bass, and a retro 80s vibe.</div>
     </div>
 
     <div class="panel">
       <div class="title">Preview Track</div>
       <div class="wave">
         <canvas id="viz" width="1200" height="170"></canvas>
-        <div class="progress"><div class="bar" id="bar"></div></div>
-        <div class="time"><span id="t0">0:00</span><span id="t1">0:00</span></div>
         <audio id="player" controls></audio>
       </div>
 
       <div class="footerRow">
         <span class="pill" id="devicePill">Loading model…</span>
-        <span class="status" id="status">Use a Chromium browser with WebGPU for best speed.</span>
+        <span class="status" id="status">Use Chrome or Edge for best WebGPU support.</span>
       </div>
 
       <div class="actions">
@@ -225,158 +149,93 @@
   </div>
 
   <script type="module">
-    import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js";
+    import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0/dist/transformers.min.js";
 
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    const $ = (id) => document.getElementById(id);
+    const $ = id => document.getElementById(id);
     const statusEl = $("status");
     const pill = $("devicePill");
     const desc = $("desc");
     const player = $("player");
-    const bar = $("bar");
-    const t0 = $("t0");
-    const t1 = $("t1");
     const viz = $("viz");
     const ctx = viz.getContext("2d");
-
     let generator = null;
     let currentObjectUrl = null;
-    let audioBuffer = null;
-    let drawTimer = null;
 
-    const phrases = [
-      "A nostalgic synthwave track with lush melodies, driving bass, and a retro 80s vibe.",
-      "A neon-lit cyberpunk anthem with pulsing bass and glossy pads.",
-      "A dreamy ambient soundscape with shimmering textures and soft percussion."
-    ];
-
-    function fmt(sec){
-      sec = Math.max(0, sec|0);
-      const m = Math.floor(sec / 60);
-      const s = String(sec % 60).padStart(2, "0");
-      return `${m}:${s}`;
-    }
-
-    function drawBars(arr){
+    function drawBars() {
       const w = viz.width, h = viz.height;
       ctx.clearRect(0,0,w,h);
-      const grad = ctx.createLinearGradient(0,0,w,0);
-      grad.addColorStop(0, "#ff61d7");
-      grad.addColorStop(.25, "#ff9a7b");
-      grad.addColorStop(.55, "#ffd96a");
-      grad.addColorStop(.78, "#91e6ff");
-      grad.addColorStop(1, "#8b73ff");
-      const step = Math.max(1, Math.floor(arr.length / 220));
-      const bars = [];
-      for(let i=0; i<arr.length; i+=step) bars.push(arr[i]);
-      const bw = w / bars.length;
-      for(let i=0; i<bars.length; i++){
-        const v = Math.max(0.05, bars[i]);
-        const bh = v * (h * 0.92);
-        const x = i * bw;
-        const y = (h - bh) / 2;
-        ctx.fillStyle = grad;
-        ctx.fillRect(x, y, Math.max(1, bw * 0.8), bh);
+      const g = ctx.createLinearGradient(0,0,w,0);
+      g.addColorStop(0, "#ff61d7");
+      g.addColorStop(.25, "#ff9a7b");
+      g.addColorStop(.55, "#ffd96a");
+      g.addColorStop(.78, "#91e6ff");
+      g.addColorStop(1, "#8b73ff");
+      for (let i = 0; i < 220; i++) {
+        const x = (i / 220) * w;
+        const bh = (0.15 + Math.random() * 0.85) * (h * 0.9);
+        ctx.fillStyle = g;
+        ctx.fillRect(x, (h - bh) / 2, w / 260, bh);
       }
     }
 
-    function makeVizFromAudio(url){
-      if (drawTimer) cancelAnimationFrame(drawTimer);
-      const audio = new Audio();
-      audio.src = url;
-      audio.crossOrigin = "anonymous";
-      const ac = new (window.AudioContext || window.webkitAudioContext)();
-      audio.addEventListener("canplay", async () => {
-        try{
-          const res = await fetch(url);
-          const ab = await res.arrayBuffer();
-          audioBuffer = await ac.decodeAudioData(ab);
-          const data = audioBuffer.getChannelData(0);
-          const chunk = 1024;
-          const peaks = [];
-          for(let i=0;i<data.length;i+=chunk){
-            let sum = 0;
-            for(let j=i;j<Math.min(i+chunk,data.length);j++) sum += Math.abs(data[j]);
-            peaks.push(sum / chunk);
-          }
-          drawBars(peaks);
-          t1.textContent = fmt(audioBuffer.duration);
-        }catch(e){}
-      });
-    }
-
-    async function loadModel(){
+    async function loadModel() {
       if (!("gpu" in navigator)) {
-        pill.textContent = "WebGPU not found";
-        statusEl.textContent = "This works best in a WebGPU-capable browser. The app may still run slower on CPU.";
+        pill.textContent = "No WebGPU";
+        statusEl.textContent = "WebGPU is not available in this browser, so it may be slow.";
       } else {
         pill.textContent = "WebGPU available";
       }
-      statusEl.textContent = "Loading MusicGen Small… this can take a bit the first time.";
-      try{
-        generator = await pipeline(
-          "text-to-audio",
-          "Xenova/musicgen-small",
-          { device: "webgpu" }
-        );
+
+      statusEl.textContent = "Loading Xenova/musicgen-small…";
+      try {
+        generator = await pipeline("text-to-audio", "Xenova/musicgen-small", { device: "webgpu" });
         pill.textContent = "Ready";
-        statusEl.textContent = "Model loaded. Enter a prompt and generate.";
-      }catch(e){
-        try{
-          generator = await pipeline(
-            "text-to-audio",
-            "Xenova/musicgen-small",
-            { device: "cpu" }
-          );
+        statusEl.textContent = "Model loaded.";
+      } catch (e) {
+        console.warn(e);
+        try {
+          generator = await pipeline("text-to-audio", "Xenova/musicgen-small", { device: "cpu" });
           pill.textContent = "CPU mode";
           statusEl.textContent = "WebGPU failed, using CPU.";
-        }catch(err){
-          pill.textContent = "Load failed";
-          statusEl.textContent = "Could not load the model in this browser.";
+        } catch (err) {
           console.error(err);
+          pill.textContent = "Load failed";
+          statusEl.textContent = "Could not load the model.";
         }
       }
     }
 
-    async function generate(){
+    async function generate() {
       if (!generator) return;
-
-      const genre = $("genre").value;
-      const mood = $("mood").value;
-      const theme = $("theme").value;
-      const tempo = $("tempo").value;
-      const userPrompt = $("prompt").value.trim();
-
-      const prompt = `${genre} music, ${mood} mood, ${theme} theme, ${tempo} tempo. ${userPrompt}`.trim();
+      const prompt = `${$("genre").value} music, ${$("mood").value} mood, ${$("theme").value} theme, ${$("tempo").value} tempo. ${$("prompt").value.trim()}`.trim();
       desc.textContent = prompt;
-      statusEl.textContent = "Generating music locally in your browser…";
+      statusEl.textContent = "Generating music locally…";
       $("generateBtn").disabled = true;
       $("regenBtn").disabled = true;
 
-      try{
+      try {
         const out = await generator(prompt, {
           max_new_tokens: 512,
           do_sample: true,
-          guidance_scale: 3.0,
+          guidance_scale: 3,
         });
 
-        const { audio } = out;
-        const wavBlob = audio.toBlob ? await audio.toBlob() : new Blob([audio.data], { type: "audio/wav" });
+        const audio = out.audio;
+        const blob = audio.toBlob ? await audio.toBlob() : new Blob([audio.data], { type: "audio/wav" });
         if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
-        currentObjectUrl = URL.createObjectURL(wavBlob);
+        currentObjectUrl = URL.createObjectURL(blob);
         player.src = currentObjectUrl;
         $("downloadBtn").href = currentObjectUrl;
         player.play().catch(()=>{});
         statusEl.textContent = "Done.";
-        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-        desc.textContent = phrase;
-        makeVizFromAudio(currentObjectUrl);
-      }catch(e){
+        drawBars();
+      } catch (e) {
         console.error(e);
         statusEl.textContent = "Generation failed.";
-      }finally{
+      } finally {
         $("generateBtn").disabled = false;
         $("regenBtn").disabled = false;
       }
@@ -386,14 +245,8 @@
     $("regenBtn").onclick = generate;
     $("stopBtn").onclick = () => player.pause();
 
-    player.addEventListener("timeupdate", () => {
-      t0.textContent = fmt(player.currentTime || 0);
-      t1.textContent = fmt(player.duration || 0);
-      if (player.duration) bar.style.width = `${(player.currentTime / player.duration) * 100}%`;
-    });
-
+    drawBars();
     await loadModel();
-    drawBars(Array.from({length: 240}, (_, i) => 0.2 + 0.2 * Math.sin(i / 6) + 0.1 * Math.random()));
   </script>
 </body>
 </html>
