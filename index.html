@@ -1,299 +1,399 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Music Generator (WebGPU MusicGen)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Music Generator</title>
   <style>
     :root{
-      color-scheme: dark;
-      --bg: #0a0a18;
-      --panel: #121227;
-      --panel2:#1a1a36;
-      --text:#edf0ff;
-      --muted:#98a2c9;
-      --purple:#a855f7;
-      --cyan:#22d3ee;
-      --pink:#ec4899;
-      --err:#fb7185;
-      --ok:#34d399;
+      --bg1:#090613;
+      --bg2:#140b24;
+      --panel:rgba(17, 15, 34, .82);
+      --line:rgba(255,255,255,.14);
+      --text:#f4eeff;
+      --muted:#c8bfdc;
+      --pink:#ff5fd7;
+      --blue:#4ad7ff;
+      --violet:#8a6bff;
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+      --radius:18px;
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      min-height:100vh;
-      background: radial-gradient(1000px 500px at 10% -20%, #2b175f 0%, var(--bg) 55%) fixed;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       color:var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      padding: 20px;
-      display:grid;
-      place-items:center;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255,100,200,.22), transparent 20%),
+        radial-gradient(circle at 84% 18%, rgba(60,150,255,.16), transparent 18%),
+        radial-gradient(circle at 50% 80%, rgba(255,255,255,.08), transparent 24%),
+        linear-gradient(180deg,var(--bg2),var(--bg1) 58%, #06040d);
+      overflow-x:hidden;
     }
-    .wrap{width:min(980px, 96vw);display:grid;gap:14px}
-    .card{
-      background: linear-gradient(180deg, rgba(26, 26, 54, .95), rgba(15, 15, 32, .95));
-      border:1px solid rgba(168, 85, 247, .25);
+    .stars{
+      position:fixed; inset:0; pointer-events:none; opacity:.10;
+      background-image:radial-gradient(rgba(255,255,255,.9) 1px, transparent 1px);
+      background-size:120px 120px;
+      transform:translateZ(0);
+    }
+    .wrap{width:min(1200px,calc(100vw - 28px)); margin:18px auto 30px}
+    .topbar,.panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.03);
+      backdrop-filter:blur(12px);
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 20px; margin-bottom:16px;
+    }
+    .brand{
+      font-size:clamp(28px,4vw,40px);
+      font-weight:900; letter-spacing:2px;
+      text-transform:uppercase;
+      background:linear-gradient(90deg,#ff8ef3,#ffd4e8 30%,#80cfff 68%,#d2e8ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+      text-shadow:0 0 18px rgba(255,120,220,.22);
+    }
+    .nav{display:flex; gap:18px; color:var(--muted); font-size:14px; flex-wrap:wrap}
+    .nav span{opacity:.95}
+    .panel{padding:16px; margin-bottom:16px}
+    .grid4{
+      display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;
+    }
+    select,input,button,a.btn{
+      width:100%;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background:linear-gradient(180deg, rgba(34,29,59,.98), rgba(16,13,31,.98));
+      color:var(--text);
+      padding:14px 14px;
+      font-size:15px;
+      outline:none;
+    }
+    .prompt{
+      display:grid; grid-template-columns:1fr 190px; gap:12px;
+    }
+    input::placeholder{color:#b7accd}
+    button{
+      cursor:pointer;
+      font-weight:800;
+      background:linear-gradient(90deg,#ff62d9,#8b73ff 55%,#42d7ff);
+      border:none;
+      box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 0 24px rgba(130,110,255,.25);
+    }
+    button:disabled{opacity:.6; cursor:not-allowed}
+    .desc{margin:12px 2px 0; color:var(--muted); line-height:1.45}
+    .title{
+      display:flex; align-items:center; gap:10px;
+      color:#d9d0f3; font-weight:800; margin-bottom:12px;
+    }
+    .wave{
+      position:relative;
+      min-height:230px;
       border-radius:16px;
       padding:16px;
-      box-shadow:0 12px 28px rgba(0,0,0,.35);
+      overflow:hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)),
+        radial-gradient(circle at 50% 50%, rgba(255,100,210,.12), transparent 55%);
     }
-    h1{margin:0;font-size:clamp(1.45rem,2.4vw,2.1rem)}
-    .sub{margin-top:6px;color:var(--muted);line-height:1.35}
-    .grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));gap: 12px;margin-top: 12px}
-    label{display:grid;gap:8px}
-    .label{color:var(--muted);font-size:.92rem}
-    textarea, input, button{
-      border-radius: 12px;
-      border: 1px solid rgba(34, 211, 238, .25);
-      background: rgba(8, 8, 20, .75);
-      color: var(--text);
-      font: inherit;
-      padding: 10px 12px;
+    .wave canvas{
+      width:100%; height:170px; display:block;
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(10,10,20,.45), rgba(5,5,12,.28));
+      border:1px solid rgba(255,255,255,.08);
     }
-    textarea{width:100%;min-height: 120px;resize: vertical}
-    input[type="range"]{accent-color: var(--cyan); padding: 0}
-    input[type="number"]{background:#111126;border-color: rgba(236,72,153,.35)}
-    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
-    button{cursor:pointer;border: 1px solid transparent;background:#202048;padding: 10px 14px;font-weight:700}
-    button:hover{filter:brightness(1.07)}
-    button.primary{background: linear-gradient(90deg, var(--purple), var(--cyan));color:#0a0a18}
-    button.ghost{background:transparent;border-color: rgba(236,72,153,.35)}
-    button:disabled{opacity:.45;cursor:not-allowed}
-    .status{margin-top: 10px;color: var(--muted);min-height: 1.2em;word-break: break-word}
-    .status.ok{color: var(--ok)}
-    .status.err{color: var(--err)}
-    audio{width:100%; margin-top: 10px;}
-    .error{margin-top: 10px;padding: 10px 12px;border-radius: 12px;border: 1px solid rgba(251,113,133,.6);color: #ffd5de;background: rgba(80, 20, 40, .35);display:none}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid rgba(34,211,238,.25);background: rgba(14, 14, 31, .85);color: var(--muted);font-size: .9rem;margin-top: 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .fine{color:var(--muted); font-size: .86rem; margin-top: 6px}
-    code{background: rgba(255,255,255,.06); padding:2px 6px; border-radius:8px; border: 1px solid rgba(255,255,255,.10)}
+    .progress{
+      margin-top:12px;
+      width:100%;
+      height:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .bar{
+      width:0%; height:100%;
+      background:linear-gradient(90deg,#ff61d7,#ff8d89,#ffd36a,#8fe7ff,#8b73ff);
+      box-shadow:0 0 18px rgba(255,100,210,.35);
+    }
+    .time{
+      display:flex; justify-content:space-between; color:#d9d0f3; margin-top:8px; font-size:13px;
+      opacity:.9;
+    }
+    .actions{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px;
+    }
+    .secondary{
+      background:linear-gradient(180deg, rgba(39,35,61,.98), rgba(16,13,31,.98));
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .footerRow{
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:10px;
+    }
+    .status{color:#dacff2; font-size:14px; opacity:.95}
+    .pill{
+      border:1px solid rgba(255,255,255,.14);
+      padding:8px 12px; border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:#e8ddff;
+      font-size:13px;
+    }
+    audio{width:100%; margin-top:12px}
+    @media (max-width: 900px){
+      .grid4,.prompt,.actions{grid-template-columns:1fr}
+      .topbar{gap:12px; flex-direction:column; align-items:flex-start}
+    }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <section class="card">
-      <h1>🎵 AI Music Generator (WebGPU)</h1>
-      <div class="sub">
-        Runs <code>MusicGen</code> fully in your browser via <code>@huggingface/transformers</code> using <b>WebGPU</b>.
-        No API keys, no backend.
+  <div class="stars"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">AI MUSIC GENERATOR</div>
+      <div class="nav">
+        <span>My Tracks</span>
+        <span>Favorites</span>
+        <span>Settings</span>
       </div>
-      <div class="pill" id="gpuInfo">Checking WebGPU support…</div>
-      <div id="errorBox" class="error"><div id="errorText">Something went wrong.</div></div>
-    </section>
+    </div>
 
-    <section class="card">
-      <label>
-        <span class="label">Prompt</span>
-        <textarea id="prompt" placeholder="e.g. chill lo-fi hip hop, warm vinyl crackle, mellow drums, 90 bpm">epic cinematic orchestral soundtrack, powerful drums, uplifting melody</textarea>
-      </label>
-
-      <div class="grid">
-        <label>
-          <span class="label">Duration: <strong id="secondsLabel">8</strong> seconds</span>
-          <input id="seconds" type="range" min="4" max="20" step="1" value="8" />
-        </label>
-        <label>
-          <span class="label">Guidance scale</span>
-          <input id="guidance" type="number" min="1" max="10" step="0.5" value="3" />
-        </label>
+    <div class="panel">
+      <div class="grid4">
+        <select id="genre">
+          <option>Synthwave</option>
+          <option>EDM</option>
+          <option>Lo-fi</option>
+          <option>Cinematic</option>
+          <option>Ambient</option>
+          <option>Trap</option>
+        </select>
+        <select id="mood">
+          <option>Dreamy</option>
+          <option>Energetic</option>
+          <option>Dark</option>
+          <option>Chill</option>
+          <option>Epic</option>
+        </select>
+        <select id="theme">
+          <option>Neon City</option>
+          <option>Space</option>
+          <option>Retro Arcade</option>
+          <option>Cyberpunk</option>
+          <option>Midnight Drive</option>
+        </select>
+        <select id="tempo">
+          <option>Medium</option>
+          <option>Slow</option>
+          <option>Fast</option>
+        </select>
       </div>
 
-      <div class="row">
-        <button id="generate" class="primary">Generate Music</button>
-        <button id="download" class="ghost" disabled>⬇ Download WAV</button>
+      <div class="prompt">
+        <input id="prompt" placeholder="Enter your prompt..." />
+        <button id="generateBtn">Generate</button>
       </div>
 
-      <div id="status" class="status" role="status" aria-live="polite">Ready.</div>
-      <div class="fine">Tip: first load can take a while while the model downloads + compiles on your GPU.</div>
+      <div class="desc" id="desc">
+        A nostalgic synthwave track with lush melodies, driving bass, and a retro 80s vibe.
+      </div>
+    </div>
 
-      <audio id="player" controls></audio>
-    </section>
-  </main>
+    <div class="panel">
+      <div class="title">Preview Track</div>
+      <div class="wave">
+        <canvas id="viz" width="1200" height="170"></canvas>
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <div class="time"><span id="t0">0:00</span><span id="t1">0:00</span></div>
+        <audio id="player" controls></audio>
+      </div>
+
+      <div class="footerRow">
+        <span class="pill" id="devicePill">Loading model…</span>
+        <span class="status" id="status">Use a Chromium browser with WebGPU for best speed.</span>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" id="regenBtn">Regenerate</button>
+        <button class="secondary" id="stopBtn">Stop</button>
+        <a class="btn secondary" id="downloadBtn" download="musicgen.wav" href="#">Download</a>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
-    import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.3';
-
-    const $ = (id) => document.getElementById(id);
-    const statusEl = $('status');
-    const generateBtn = $('generate');
-    const downloadBtn = $('download');
-    const player = $('player');
-    const errorBox = $('errorBox');
-    const errorText = $('errorText');
-    const gpuInfo = $('gpuInfo');
+    import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js";
 
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    const MODEL_ID = 'Xenova/musicgen-small';
-    const TOKENS_PER_SECOND = 50;
-    const MIN_NEW_TOKENS = 32;
-    const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const pill = $("devicePill");
+    const desc = $("desc");
+    const player = $("player");
+    const bar = $("bar");
+    const t0 = $("t0");
+    const t1 = $("t1");
+    const viz = $("viz");
+    const ctx = viz.getContext("2d");
 
-    let generatorPromise;
-    let lastBlob;
+    let generator = null;
+    let currentObjectUrl = null;
+    let audioBuffer = null;
+    let drawTimer = null;
 
-    function setStatus(message, kind = '') {
-      statusEl.textContent = message;
-      statusEl.classList.remove('ok', 'err');
-      if (kind) statusEl.classList.add(kind);
+    const phrases = [
+      "A nostalgic synthwave track with lush melodies, driving bass, and a retro 80s vibe.",
+      "A neon-lit cyberpunk anthem with pulsing bass and glossy pads.",
+      "A dreamy ambient soundscape with shimmering textures and soft percussion."
+    ];
+
+    function fmt(sec){
+      sec = Math.max(0, sec|0);
+      const m = Math.floor(sec / 60);
+      const s = String(sec % 60).padStart(2, "0");
+      return `${m}:${s}`;
     }
 
-    function showError(message) {
-      errorText.textContent = message;
-      errorBox.style.display = 'block';
-      setStatus(message, 'err');
-    }
-
-    function clearError() {
-      errorBox.style.display = 'none';
-      errorText.textContent = '';
-    }
-
-    function floatTo16BitPCM(view, offset, input) {
-      for (let i = 0; i < input.length; i += 1, offset += 2) {
-        const s = Math.max(-1, Math.min(1, input[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    function drawBars(arr){
+      const w = viz.width, h = viz.height;
+      ctx.clearRect(0,0,w,h);
+      const grad = ctx.createLinearGradient(0,0,w,0);
+      grad.addColorStop(0, "#ff61d7");
+      grad.addColorStop(.25, "#ff9a7b");
+      grad.addColorStop(.55, "#ffd96a");
+      grad.addColorStop(.78, "#91e6ff");
+      grad.addColorStop(1, "#8b73ff");
+      const step = Math.max(1, Math.floor(arr.length / 220));
+      const bars = [];
+      for(let i=0; i<arr.length; i+=step) bars.push(arr[i]);
+      const bw = w / bars.length;
+      for(let i=0; i<bars.length; i++){
+        const v = Math.max(0.05, bars[i]);
+        const bh = v * (h * 0.92);
+        const x = i * bw;
+        const y = (h - bh) / 2;
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, Math.max(1, bw * 0.8), bh);
       }
     }
 
-    function encodeWav(samples, sampleRate) {
-      const buffer = new ArrayBuffer(44 + samples.length * 2);
-      const view = new DataView(buffer);
-      const writeString = (offset, value) => {
-        for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));
-      };
-
-      writeString(0, 'RIFF');
-      view.setUint32(4, 36 + samples.length * 2, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(36, 'data');
-      view.setUint32(40, samples.length * 2, true);
-      floatTo16BitPCM(view, 44, samples);
-
-      return new Blob([view], { type: 'audio/wav' });
-    }
-
-    function normalizeOutput(result) {
-      const first = Array.isArray(result) ? result[0] : result;
-      if (!first || !first.audio) throw new Error('Model returned no audio data.');
-
-      const audio = Array.isArray(first.audio) ? first.audio[0] : first.audio;
-      if (Array.isArray(first.audio) && first.audio.length === 0) throw new Error('Model returned an empty audio array.');
-      if (!(audio instanceof Float32Array) && !ArrayBuffer.isView(audio)) throw new Error('Audio output format is not supported.');
-
-      return {
-        samples: audio instanceof Float32Array ? audio : new Float32Array(audio),
-        samplingRate: Number(first.sampling_rate) || 32000
-      };
-    }
-
-    async function loadGeneratorWebGPUOnly() {
-      if (generatorPromise) return generatorPromise;
-
-      generatorPromise = (async () => {
-        if (!(typeof navigator !== 'undefined' && 'gpu' in navigator)) {
-          throw new Error('WebGPU is required. Please use Chrome or Edge with WebGPU enabled.');
-        }
-
-        setStatus(`Loading model (${MODEL_ID}) on WebGPU... first run can take a while.`);
-        const generator = await pipeline('text-to-audio', MODEL_ID, {
-          device: 'webgpu',
-          dtype: {
-            text_encoder: 'q8',
-            decoder_model_merged: 'q8',
-            encodec_decode: 'q8'
-          },
-          progress_callback: (info) => {
-            const pct = Number.isFinite(info?.progress) ? ` ${Math.round(info.progress)}%` : '';
-            const file = info?.file ? ` (${info.file.split('/').pop()})` : '';
-            setStatus(`Loading model${file}${pct}`);
+    function makeVizFromAudio(url){
+      if (drawTimer) cancelAnimationFrame(drawTimer);
+      const audio = new Audio();
+      audio.src = url;
+      audio.crossOrigin = "anonymous";
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      audio.addEventListener("canplay", async () => {
+        try{
+          const res = await fetch(url);
+          const ab = await res.arrayBuffer();
+          audioBuffer = await ac.decodeAudioData(ab);
+          const data = audioBuffer.getChannelData(0);
+          const chunk = 1024;
+          const peaks = [];
+          for(let i=0;i<data.length;i+=chunk){
+            let sum = 0;
+            for(let j=i;j<Math.min(i+chunk,data.length);j++) sum += Math.abs(data[j]);
+            peaks.push(sum / chunk);
           }
-        });
-
-        setStatus(`Model loaded: ${MODEL_ID} (WebGPU).`, 'ok');
-        return generator;
-      })();
-
-      return generatorPromise;
+          drawBars(peaks);
+          t1.textContent = fmt(audioBuffer.duration);
+        }catch(e){}
+      });
     }
 
-    $('seconds').addEventListener('input', () => {
-      $('secondsLabel').textContent = $('seconds').value;
-    });
-
-    const hasWebGPU = (typeof navigator !== 'undefined' && 'gpu' in navigator);
-    if (hasWebGPU) {
-      gpuInfo.textContent = 'WebGPU: available';
-      generateBtn.disabled = false;
-    } else {
-      gpuInfo.textContent = 'WebGPU: not available';
-      generateBtn.disabled = true;
-      showError('WebGPU is required. Use Chrome/Edge (desktop) with WebGPU enabled.');
-    }
-
-    generateBtn.addEventListener('click', async () => {
-      clearError();
-
-      const prompt = $('prompt').value.trim();
-      const durationSeconds = Number($('seconds').value);
-      const guidanceScale = Number($('guidance').value);
-
-      if (!prompt) return showError('Please enter a prompt.');
-      if (!Number.isFinite(guidanceScale) || guidanceScale <= 0) return showError('Guidance scale must be a positive number.');
-
-      generateBtn.disabled = true;
-      downloadBtn.disabled = true;
-      setStatus('Preparing generator…');
-
-      try {
-        const generator = await loadGeneratorWebGPUOnly();
-        setStatus('Generating audio… (this can take time depending on your GPU)');
-
-        const maxNewTokens = Math.max(MIN_NEW_TOKENS, Math.round(durationSeconds * TOKENS_PER_SECOND));
-
-        const output = await generator(prompt, {
-          max_new_tokens: maxNewTokens,
-          guidance_scale: guidanceScale,
-          speaker_embeddings: null
-        });
-
-        const { samples, samplingRate } = normalizeOutput(output);
-
-        if (player.src) URL.revokeObjectURL(player.src);
-        lastBlob = encodeWav(samples, samplingRate);
-        player.src = URL.createObjectURL(lastBlob);
-
-        player.play().catch(() => {});
-        setStatus(`Done. Generated ${durationSeconds}s at ${samplingRate} Hz.`, 'ok');
-        downloadBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        showError(`Generation failed: ${err?.message || err}`);
-      } finally {
-        generateBtn.disabled = !hasWebGPU;
+    async function loadModel(){
+      if (!("gpu" in navigator)) {
+        pill.textContent = "WebGPU not found";
+        statusEl.textContent = "This works best in a WebGPU-capable browser. The app may still run slower on CPU.";
+      } else {
+        pill.textContent = "WebGPU available";
       }
+      statusEl.textContent = "Loading MusicGen Small… this can take a bit the first time.";
+      try{
+        generator = await pipeline(
+          "text-to-audio",
+          "Xenova/musicgen-small",
+          { device: "webgpu" }
+        );
+        pill.textContent = "Ready";
+        statusEl.textContent = "Model loaded. Enter a prompt and generate.";
+      }catch(e){
+        try{
+          generator = await pipeline(
+            "text-to-audio",
+            "Xenova/musicgen-small",
+            { device: "cpu" }
+          );
+          pill.textContent = "CPU mode";
+          statusEl.textContent = "WebGPU failed, using CPU.";
+        }catch(err){
+          pill.textContent = "Load failed";
+          statusEl.textContent = "Could not load the model in this browser.";
+          console.error(err);
+        }
+      }
+    }
+
+    async function generate(){
+      if (!generator) return;
+
+      const genre = $("genre").value;
+      const mood = $("mood").value;
+      const theme = $("theme").value;
+      const tempo = $("tempo").value;
+      const userPrompt = $("prompt").value.trim();
+
+      const prompt = `${genre} music, ${mood} mood, ${theme} theme, ${tempo} tempo. ${userPrompt}`.trim();
+      desc.textContent = prompt;
+      statusEl.textContent = "Generating music locally in your browser…";
+      $("generateBtn").disabled = true;
+      $("regenBtn").disabled = true;
+
+      try{
+        const out = await generator(prompt, {
+          max_new_tokens: 512,
+          do_sample: true,
+          guidance_scale: 3.0,
+        });
+
+        const { audio } = out;
+        const wavBlob = audio.toBlob ? await audio.toBlob() : new Blob([audio.data], { type: "audio/wav" });
+        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = URL.createObjectURL(wavBlob);
+        player.src = currentObjectUrl;
+        $("downloadBtn").href = currentObjectUrl;
+        player.play().catch(()=>{});
+        statusEl.textContent = "Done.";
+        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+        desc.textContent = phrase;
+        makeVizFromAudio(currentObjectUrl);
+      }catch(e){
+        console.error(e);
+        statusEl.textContent = "Generation failed.";
+      }finally{
+        $("generateBtn").disabled = false;
+        $("regenBtn").disabled = false;
+      }
+    }
+
+    $("generateBtn").onclick = generate;
+    $("regenBtn").onclick = generate;
+    $("stopBtn").onclick = () => player.pause();
+
+    player.addEventListener("timeupdate", () => {
+      t0.textContent = fmt(player.currentTime || 0);
+      t1.textContent = fmt(player.duration || 0);
+      if (player.duration) bar.style.width = `${(player.currentTime / player.duration) * 100}%`;
     });
 
-    downloadBtn.addEventListener('click', () => {
-      if (!lastBlob) return;
-      const url = URL.createObjectURL(lastBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'musicgen-webgpu.wav';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
-    });
+    await loadModel();
+    drawBars(Array.from({length: 240}, (_, i) => 0.2 + 0.2 * Math.sin(i / 6) + 0.1 * Math.random()));
   </script>
 </body>
 </html>
