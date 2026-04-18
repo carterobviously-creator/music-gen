@@ -5,147 +5,51 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AI Music Generator</title>
   <style>
-    :root{
-      --bg1:#090613;
-      --bg2:#140b24;
-      --panel:rgba(17, 15, 34, .82);
-      --line:rgba(255,255,255,.14);
-      --text:#f4eeff;
-      --muted:#c8bfdc;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
     body{
       margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(circle at 18% 12%, rgba(255,100,200,.22), transparent 20%),
-        radial-gradient(circle at 84% 18%, rgba(60,150,255,.16), transparent 18%),
-        radial-gradient(circle at 50% 80%, rgba(255,255,255,.08), transparent 24%),
-        linear-gradient(180deg,var(--bg2),var(--bg1) 58%, #06040d);
-      overflow-x:hidden;
+      min-height:100vh;
+      font-family:system-ui,sans-serif;
+      color:#fff;
+      background:linear-gradient(180deg,#12091f,#090613);
+      display:grid;
+      place-items:center;
     }
-    .stars{
-      position:fixed; inset:0; pointer-events:none; opacity:.10;
-      background-image:radial-gradient(rgba(255,255,255,.9) 1px, transparent 1px);
-      background-size:120px 120px;
+    .card{
+      width:min(1100px,calc(100vw - 24px));
+      background:rgba(15,12,30,.88);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:20px;
+      padding:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
     }
-    .wrap{width:min(1200px,calc(100vw - 28px)); margin:18px auto 30px}
-    .topbar,.panel{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.03);
-      backdrop-filter:blur(12px);
+    .row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+    .prompt{display:grid;grid-template-columns:1fr 180px;gap:10px}
+    input,select,button,a{
+      width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+      background:#1c1730;color:#fff;font-size:15px
     }
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:18px 20px; margin-bottom:16px;
-    }
-    .brand{
-      font-size:clamp(28px,4vw,40px);
-      font-weight:900; letter-spacing:2px; text-transform:uppercase;
-      background:linear-gradient(90deg,#ff8ef3,#ffd4e8 30%,#80cfff 68%,#d2e8ff);
-      -webkit-background-clip:text; background-clip:text; color:transparent;
-    }
-    .nav{display:flex; gap:18px; color:var(--muted); font-size:14px; flex-wrap:wrap}
-    .panel{padding:16px; margin-bottom:16px}
-    .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px}
-    select,input,button,a.btn{
-      width:100%;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.16);
-      background:linear-gradient(180deg, rgba(34,29,59,.98), rgba(16,13,31,.98));
-      color:var(--text);
-      padding:14px 14px;
-      font-size:15px;
-      outline:none;
-    }
-    .prompt{display:grid; grid-template-columns:1fr 190px; gap:12px}
-    input::placeholder{color:#b7accd}
-    button{
-      cursor:pointer; font-weight:800;
-      background:linear-gradient(90deg,#ff62d9,#8b73ff 55%,#42d7ff);
-      border:none;
-    }
-    button:disabled{opacity:.6; cursor:not-allowed}
-    .desc{margin:12px 2px 0; color:var(--muted); line-height:1.45}
-    .title{font-weight:800; margin-bottom:12px; color:#d9d0f3}
-    .wave{
-      min-height:230px; border-radius:16px; padding:16px; overflow:hidden;
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-    }
-    .wave canvas{
-      width:100%; height:170px; display:block; border-radius:14px;
-      background:rgba(5,5,12,.28);
-      border:1px solid rgba(255,255,255,.08);
-    }
-    audio{width:100%; margin-top:12px}
-    .footerRow{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:10px}
-    .pill{
-      border:1px solid rgba(255,255,255,.14); padding:8px 12px; border-radius:999px;
-      background:rgba(255,255,255,.04); color:#e8ddff; font-size:13px;
-    }
-    .status{color:#dacff2; font-size:14px; opacity:.95}
-    .actions{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px}
-    .secondary{background:linear-gradient(180deg, rgba(39,35,61,.98), rgba(16,13,31,.98)); border:1px solid rgba(255,255,255,.14)}
-    @media (max-width: 900px){
-      .grid4,.prompt,.actions{grid-template-columns:1fr}
-      .topbar{gap:12px; flex-direction:column; align-items:flex-start}
-    }
+    button,a{background:linear-gradient(90deg,#ff5fd7,#7d6bff,#42d7ff);border:none;font-weight:700;text-align:center;text-decoration:none}
+    .msg{margin-top:12px;color:#d7cfee}
+    audio{width:100%;margin-top:14px}
+    @media (max-width:900px){.row,.prompt{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
-  <div class="stars"></div>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">AI Music Generator</div>
-      <div class="nav"><span>My Tracks</span><span>Favorites</span><span>Settings</span></div>
+  <div class="card">
+    <h1>AI Music Generator</h1>
+    <div class="row">
+      <select id="genre"><option>Synthwave</option><option>EDM</option><option>Lo-fi</option><option>Cinematic</option></select>
+      <select id="mood"><option>Dreamy</option><option>Energetic</option><option>Dark</option><option>Chill</option></select>
+      <select id="theme"><option>Neon City</option><option>Space</option><option>Cyberpunk</option><option>Retro Arcade</option></select>
+      <select id="tempo"><option>Medium</option><option>Slow</option><option>Fast</option></select>
     </div>
-
-    <div class="panel">
-      <div class="grid4">
-        <select id="genre">
-          <option>Synthwave</option><option>EDM</option><option>Lo-fi</option><option>Cinematic</option><option>Ambient</option>
-        </select>
-        <select id="mood">
-          <option>Dreamy</option><option>Energetic</option><option>Dark</option><option>Chill</option><option>Epic</option>
-        </select>
-        <select id="theme">
-          <option>Neon City</option><option>Space</option><option>Retro Arcade</option><option>Cyberpunk</option><option>Midnight Drive</option>
-        </select>
-        <select id="tempo">
-          <option>Medium</option><option>Slow</option><option>Fast</option>
-        </select>
-      </div>
-
-      <div class="prompt">
-        <input id="prompt" placeholder="Enter your prompt..." />
-        <button id="generateBtn">Generate</button>
-      </div>
-
-      <div class="desc" id="desc">A nostalgic synthwave track with lush melodies, driving bass, and a retro 80s vibe.</div>
+    <div class="prompt">
+      <input id="prompt" placeholder="Enter your prompt..." />
+      <button id="go">Generate</button>
     </div>
-
-    <div class="panel">
-      <div class="title">Preview Track</div>
-      <div class="wave">
-        <canvas id="viz" width="1200" height="170"></canvas>
-        <audio id="player" controls></audio>
-      </div>
-
-      <div class="footerRow">
-        <span class="pill" id="devicePill">Loading model…</span>
-        <span class="status" id="status">Use Chrome or Edge for best WebGPU support.</span>
-      </div>
-
-      <div class="actions">
-        <button class="secondary" id="regenBtn">Regenerate</button>
-        <button class="secondary" id="stopBtn">Stop</button>
-        <a class="btn secondary" id="downloadBtn" download="musicgen.wav" href="#">Download</a>
-      </div>
-    </div>
+    <div class="msg" id="msg">Loading model…</div>
+    <audio id="player" controls></audio>
+    <p><a id="dl" download="musicgen.wav" href="#">Download</a></p>
   </div>
 
   <script type="module">
@@ -154,99 +58,45 @@
     env.allowLocalModels = false;
     env.useBrowserCache = true;
 
-    const $ = id => document.getElementById(id);
-    const statusEl = $("status");
-    const pill = $("devicePill");
-    const desc = $("desc");
-    const player = $("player");
-    const viz = $("viz");
-    const ctx = viz.getContext("2d");
-    let generator = null;
-    let currentObjectUrl = null;
+    const msg = document.getElementById("msg");
+    const player = document.getElementById("player");
+    const dl = document.getElementById("dl");
+    let url = null;
+    let gen = null;
 
-    function drawBars() {
-      const w = viz.width, h = viz.height;
-      ctx.clearRect(0,0,w,h);
-      const g = ctx.createLinearGradient(0,0,w,0);
-      g.addColorStop(0, "#ff61d7");
-      g.addColorStop(.25, "#ff9a7b");
-      g.addColorStop(.55, "#ffd96a");
-      g.addColorStop(.78, "#91e6ff");
-      g.addColorStop(1, "#8b73ff");
-      for (let i = 0; i < 220; i++) {
-        const x = (i / 220) * w;
-        const bh = (0.15 + Math.random() * 0.85) * (h * 0.9);
-        ctx.fillStyle = g;
-        ctx.fillRect(x, (h - bh) / 2, w / 260, bh);
-      }
-    }
-
-    async function loadModel() {
-      if (!("gpu" in navigator)) {
-        pill.textContent = "No WebGPU";
-        statusEl.textContent = "WebGPU is not available in this browser, so it may be slow.";
-      } else {
-        pill.textContent = "WebGPU available";
-      }
-
-      statusEl.textContent = "Loading Xenova/musicgen-small…";
+    async function load() {
       try {
-        generator = await pipeline("text-to-audio", "Xenova/musicgen-small", { device: "webgpu" });
-        pill.textContent = "Ready";
-        statusEl.textContent = "Model loaded.";
-      } catch (e) {
-        console.warn(e);
+        msg.textContent = "Trying WebGPU…";
+        gen = await pipeline("text-to-audio", "Xenova/musicgen-small", { device: "webgpu" });
+        msg.textContent = "Ready with WebGPU.";
+      } catch (e1) {
+        console.warn("WebGPU failed", e1);
         try {
-          generator = await pipeline("text-to-audio", "Xenova/musicgen-small", { device: "cpu" });
-          pill.textContent = "CPU mode";
-          statusEl.textContent = "WebGPU failed, using CPU.";
-        } catch (err) {
-          console.error(err);
-          pill.textContent = "Load failed";
-          statusEl.textContent = "Could not load the model.";
+          msg.textContent = "Trying CPU fallback…";
+          gen = await pipeline("text-to-audio", "Xenova/musicgen-small", { device: "cpu" });
+          msg.textContent = "Ready with CPU fallback.";
+        } catch (e2) {
+          console.error(e2);
+          msg.textContent = "Model load failed. Check browser console.";
         }
       }
     }
 
-    async function generate() {
-      if (!generator) return;
-      const prompt = `${$("genre").value} music, ${$("mood").value} mood, ${$("theme").value} theme, ${$("tempo").value} tempo. ${$("prompt").value.trim()}`.trim();
-      desc.textContent = prompt;
-      statusEl.textContent = "Generating music locally…";
-      $("generateBtn").disabled = true;
-      $("regenBtn").disabled = true;
+    document.getElementById("go").onclick = async () => {
+      if (!gen) return;
+      const p = `${genre.value} music, ${mood.value} mood, ${theme.value} theme, ${tempo.value} tempo. ${prompt.value.trim()}`.trim();
+      msg.textContent = "Generating...";
+      const out = await gen(p, { max_new_tokens: 256, do_sample: true, guidance_scale: 3 });
+      const audio = out.audio;
+      const blob = audio.toBlob ? await audio.toBlob() : new Blob([audio.data], { type: "audio/wav" });
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(blob);
+      player.src = url;
+      dl.href = url;
+      msg.textContent = "Done.";
+    };
 
-      try {
-        const out = await generator(prompt, {
-          max_new_tokens: 512,
-          do_sample: true,
-          guidance_scale: 3,
-        });
-
-        const audio = out.audio;
-        const blob = audio.toBlob ? await audio.toBlob() : new Blob([audio.data], { type: "audio/wav" });
-        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
-        currentObjectUrl = URL.createObjectURL(blob);
-        player.src = currentObjectUrl;
-        $("downloadBtn").href = currentObjectUrl;
-        player.play().catch(()=>{});
-        statusEl.textContent = "Done.";
-        drawBars();
-      } catch (e) {
-        console.error(e);
-        statusEl.textContent = "Generation failed.";
-      } finally {
-        $("generateBtn").disabled = false;
-        $("regenBtn").disabled = false;
-      }
-    }
-
-    $("generateBtn").onclick = generate;
-    $("regenBtn").onclick = generate;
-    $("stopBtn").onclick = () => player.pause();
-
-    drawBars();
-    await loadModel();
+    load();
   </script>
 </body>
 </html>
