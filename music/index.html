@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI MusicGen Studio</title>
+  <style>
+    :root {
+      --bg: #0a1022;
+      --bg2: #111b34;
+      --glass: rgba(255, 255, 255, 0.12);
+      --stroke: rgba(255, 255, 255, 0.26);
+      --txt: #e6f0ff;
+      --muted: #aac0f0;
+      --accent: #5fe3ff;
+      --accent2: #a56eff;
+      --ok: #36f8a6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(circle at 20% 10%, #3147ac 0, transparent 40%),
+                  radial-gradient(circle at 80% 20%, #7431a8 0, transparent 40%),
+                  linear-gradient(130deg, var(--bg), #080d1c 55%, #120724);
+      color: var(--txt);
+      padding: 20px;
+    }
+    .shell {
+      max-width: 980px;
+      margin: 0 auto;
+      border: 1px solid var(--stroke);
+      background: var(--glass);
+      backdrop-filter: blur(24px);
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+    .head { padding: 24px; border-bottom: 1px solid var(--stroke); }
+    .head h1 { margin: 0; font-size: clamp(1.4rem, 2vw, 2rem); }
+    .head p { margin: 8px 0 0; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 24px; }
+    .card {
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      background: rgba(11, 16, 32, .48);
+      padding: 16px;
+    }
+    .span-2 { grid-column: span 2; }
+    label { display: block; font-size: .88rem; margin-bottom: 8px; color: var(--muted); }
+    select, textarea, input[type="range"] {
+      width: 100%;
+      border: 1px solid var(--stroke);
+      border-radius: 10px;
+      background: rgba(255,255,255,.08);
+      color: var(--txt);
+      padding: 10px;
+      font: inherit;
+    }
+    textarea { min-height: 130px; resize: vertical; }
+    .range-wrap { display: grid; gap: 8px; }
+    .range-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: .84rem; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    button {
+      border: 1px solid var(--stroke);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #07101f;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 12px 18px;
+      cursor: pointer;
+    }
+    button.secondary { background: rgba(255,255,255,.08); color: var(--txt); }
+    button:disabled { opacity: .6; cursor: wait; }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: .92rem;
+      margin-top: 6px;
+      min-height: 24px;
+    }
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.25);
+      border-top-color: var(--ok);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      display: none;
+    }
+    .spinner.on { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    audio { width: 100%; margin-top: 12px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .75rem;
+      color: #042426;
+      background: var(--ok);
+      font-weight: 700;
+      margin-left: 8px;
+    }
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .span-2 { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="head">
+      <h1>🎵 AI Music Generation <span class="pill">WebGPU</span></h1>
+      <p>Create original audio from natural language prompts with genre-aware controls.</p>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <label for="genre">Genre</label>
+        <select id="genre"></select>
+      </div>
+      <div class="card">
+        <label for="modelVariant">Model Variant</label>
+        <select id="modelVariant">
+          <option value="small">Small (fast)</option>
+          <option value="medium">Medium (balanced)</option>
+          <option value="large">Large (detailed)</option>
+        </select>
+      </div>
+
+      <div class="card span-2">
+        <label for="prompt">Music Description</label>
+        <textarea id="prompt" placeholder="Example: Neon cyberpunk groove with sidechained bass, bright arps, and a soaring cinematic lead melody."></textarea>
+      </div>
+
+      <div class="card">
+        <label for="tempo">Tempo (BPM)</label>
+        <div class="range-wrap">
+          <input id="tempo" type="range" min="60" max="180" value="120" />
+          <div class="range-meta"><span>Slow</span><strong id="tempoVal">120 BPM</strong><span>Fast</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <label for="duration">Duration (seconds)</label>
+        <div class="range-wrap">
+          <input id="duration" type="range" min="5" max="30" value="12" />
+          <div class="range-meta"><span>Short</span><strong id="durationVal">12s</strong><span>Long</span></div>
+        </div>
+      </div>
+
+      <div class="card span-2">
+        <label for="creativity">Creativity / Temperature</label>
+        <div class="range-wrap">
+          <input id="creativity" type="range" min="0.1" max="1.5" step="0.05" value="0.8" />
+          <div class="range-meta"><span>Focused</span><strong id="creativityVal">0.80</strong><span>Wild</span></div>
+        </div>
+      </div>
+
+      <div class="card span-2">
+        <div class="actions">
+          <button id="generateBtn">Generate Music</button>
+          <button id="downloadBtn" class="secondary" disabled>Download WAV</button>
+        </div>
+        <div class="status"><span id="spinner" class="spinner"></span><span id="statusMsg">Ready to generate.</span></div>
+        <audio id="audioPlayer" controls style="display:none"></audio>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { GENRE_DEFINITIONS, WebGPUMusicEngine } from '../.model-config/config.js';
+    import { MusicModelLoader } from '../.model.load/load.js';
+
+    const $ = (id) => document.getElementById(id);
+    const engine = new WebGPUMusicEngine();
+    const loader = new MusicModelLoader();
+    const genreSelect = $('genre');
+    let lastBlob = null;
+
+    Object.keys(GENRE_DEFINITIONS).forEach((genre) => {
+      const opt = document.createElement('option');
+      opt.value = genre;
+      opt.textContent = genre[0].toUpperCase() + genre.slice(1);
+      genreSelect.appendChild(opt);
+    });
+
+    const sync = (id, suffix = '') => {
+      const input = $(id);
+      const output = $(`${id}Val`);
+      const render = () => { output.textContent = `${Number(input.value).toFixed(id === 'creativity' ? 2 : 0)}${suffix}`; };
+      input.addEventListener('input', render);
+      render();
+    };
+
+    sync('tempo', ' BPM');
+    sync('duration', 's');
+    sync('creativity');
+
+    const setBusy = (busy, msg) => {
+      $('generateBtn').disabled = busy;
+      $('spinner').classList.toggle('on', busy);
+      $('statusMsg').textContent = msg;
+    };
+
+    const promptWithGenre = () => {
+      const genre = genreSelect.value;
+      const body = $('prompt').value.trim();
+      return `${genre}: ${GENRE_DEFINITIONS[genre]}. ${body}`.trim();
+    };
+
+    $('generateBtn').addEventListener('click', async () => {
+      try {
+        setBusy(true, 'Initializing WebGPU...');
+        await engine.initGPU();
+
+        const variant = $('modelVariant').value;
+        await loader.loadModelVariant(variant, (evt) => {
+          if (evt.stage === 'download') {
+            setBusy(true, `Downloading ${evt.file} (${evt.progress}%)`);
+          } else if (evt.stage === 'model') {
+            setBusy(true, evt.fromCache ? 'Model loaded from cache.' : 'Model loaded.');
+          }
+        });
+
+        const tokenizer = await loader.loadTokenizer((evt) => {
+          if (!evt.fromCache) setBusy(true, 'Preparing tokenizer...');
+        });
+
+        setBusy(true, 'Encoding prompt...');
+        const prompt = promptWithGenre();
+        const localTokenIds = tokenizer.encode(prompt);
+        const gpuTokens = engine.encodePromptTokens(`${prompt} ${localTokenIds.join(' ')}`);
+
+        setBusy(true, 'Generating audio...');
+        const out = await engine.generateMusic({
+          promptTokens: gpuTokens,
+          durationSec: Number($('duration').value),
+          tempo: Number($('tempo').value),
+          temperature: Number($('creativity').value),
+        });
+
+        lastBlob = engine.float32ToWav(out.audio, out.sampleRate);
+        const url = URL.createObjectURL(lastBlob);
+        const audio = $('audioPlayer');
+        audio.src = url;
+        audio.style.display = 'block';
+        $('downloadBtn').disabled = false;
+        setBusy(false, `Done. ${($('duration').value)}s clip generated at ${out.sampleRate}Hz.`);
+      } catch (error) {
+        setBusy(false, `Failed: ${error.message}`);
+      }
+    });
+
+    $('downloadBtn').addEventListener('click', () => {
+      if (!lastBlob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(lastBlob);
+      a.download = `musicgen-${Date.now()}.wav`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</body>
+</html>
