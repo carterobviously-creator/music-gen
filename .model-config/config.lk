@@ -1,0 +1,59 @@
+# MusicGen Local Knowledge Configuration (.lk)
+
+[model]
+name = "musicgen-webgpu"
+default_variant = "small"
+sample_rate = 32000
+bit_depth = 16
+channels = 1
+min_duration_sec = 5
+max_duration_sec = 60
+seed_strategy = "prompt-hash"
+
+[genres]
+electronic = "⚡ Pulsing synths, dance energy, sidechain movement"
+indie = "🎸 Warm guitars, intimate vocals, organic drums"
+lofi = "📼 Dusty drums, vinyl noise, mellow keys"
+ambient = "🌌 Airy pads, evolving textures, calm atmosphere"
+cinematic = "🎬 Orchestral swells, dramatic impact, storytelling"
+house = "🏠 Four-on-the-floor groove, deep bassline"
+techno = "🧠 Hypnotic rhythm, dark synth sequences"
+hiphop = "🎤 Boom-bap pocket, bass-heavy beat"
+trap = "🔥 808 bass, crisp hats, modern bounce"
+jazz = "🎷 Swing feel, rich chords, improvisational tone"
+rock = "🤘 Driven guitars, live drum attitude"
+classical = "🎻 Strings and woodwinds, elegant dynamics"
+
+[tempo_presets]
+slow = 72
+chill = 90
+groove = 110
+fast = 128
+
+[presets]
+ambient_journey = "ambient|72|0.65|0.92|Slow evolving pads with soft piano accents"
+upbeat_pop = "indie|126|0.90|0.94|Catchy hook with bright guitars and punchy drums"
+cinematic_rise = "cinematic|98|0.78|0.90|Epic progression with strings and impact drums"
+lofi_focus = "lofi|84|0.58|0.88|Relaxed study beat with warm jazzy chords"
+electronic_drive = "electronic|128|0.95|0.96|Club-ready synth bass and arpeggiated leads"
+nocturnal_house = "house|122|0.82|0.91|Deep house groove with atmospheric vocal chops"
+
+[cache]
+engine = "indexeddb"
+max_entries = 6
+ttl_hours = 168
+offline_mode = true
+
+[api]
+provider = "huggingface"
+model_repo_small = "facebook/musicgen-small"
+model_repo_medium = "facebook/musicgen-medium"
+model_repo_large = "facebook/musicgen-large"
+request_timeout_ms = 120000
+retry_count = 2
+
+[prompt_templates]
+basic = "{genre}. {description}. tempo:{tempo} bpm."
+creative = "Compose a {genre} track with {description}. Keep strong groove at {tempo} bpm and emotion level {mood}."
+cinematic = "Create cinematic sound design with {description}, broad dynamics, and evolving arrangement."
+texture = "Generate atmospheric texture: {description}. Layer subtle movement, space, and tonal depth."
