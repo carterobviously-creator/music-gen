@@ -25,6 +25,14 @@ export const GENRE_DEFINITIONS = {
 };
 
 const ENVELOPE = Object.freeze({ attack: 0.03, release: 0.12 });
+const DEFAULT_PROMPT_TOKENS = new Uint32Array([17, 23, 37, 53]);
+const DEFAULT_EMPTY_TOKEN = 11;
+// Knuth multiplicative hash constant for spreading 16-bit/8-bit char values in 32-bit space.
+const TOKEN_HASH_MULTIPLIER = 2654435761;
+// Small salt mixed into all prompt tokens to avoid sparse low-value token outputs.
+const TOKEN_INDEX_SALT = 97;
+const SEED_TEMPO_FACTOR = 13;
+const SEED_TEMPERATURE_FACTOR = 1000;
 
 export class WebGPUMusicEngine {
   constructor(options = {}) {
@@ -64,18 +72,18 @@ export class WebGPUMusicEngine {
 
   encodePromptTokens(prompt) {
     const normalized = String(prompt || '').toLowerCase().trim();
-    if (!normalized) return new Uint32Array([17, 23, 37, 53]);
+    if (!normalized) return DEFAULT_PROMPT_TOKENS;
 
     const out = new Uint32Array(Math.min(256, normalized.length));
     for (let i = 0; i < out.length; i += 1) {
       const code = normalized.charCodeAt(i);
-      out[i] = ((code * 2654435761) >>> 0) ^ ((i + 1) * 97);
+      out[i] = ((code * TOKEN_HASH_MULTIPLIER) >>> 0) ^ TOKEN_INDEX_SALT;
     }
     return out;
   }
 
   _seedFromTokens(tokens, tempo, temperature) {
-    let seed = Math.floor((tempo * 13 + temperature * 1000) % 2147483647) || 1;
+    let seed = Math.floor((tempo * SEED_TEMPO_FACTOR + temperature * SEED_TEMPERATURE_FACTOR) % 2147483647) || 1;
     for (let i = 0; i < tokens.length; i += 1) {
       seed = (seed ^ tokens[i]) % 2147483647;
       if (seed <= 0) seed += 2147483646;
@@ -95,7 +103,7 @@ export class WebGPUMusicEngine {
 
     const sampleRate = this.settings.sampleRate;
     const length = Math.max(1, Math.floor(durationSec * sampleRate));
-    const tokens = promptTokens instanceof Uint32Array ? promptTokens : new Uint32Array(promptTokens || [11]);
+    const tokens = promptTokens instanceof Uint32Array ? promptTokens : new Uint32Array(promptTokens || [DEFAULT_EMPTY_TOKEN]);
 
     const state = {
       seed: this._seedFromTokens(tokens, tempo, temperature),

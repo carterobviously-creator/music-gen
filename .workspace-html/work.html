@@ -24,7 +24,7 @@
     label{display:block;font-size:.86rem;color:var(--muted);margin:10px 0 6px}
     textarea,input,select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--stroke);color:var(--txt);border-radius:10px;padding:9px;font:inherit}
     textarea{min-height:110px;resize:vertical}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
     .actions{display:flex;gap:10px;margin-top:12px}
     button{border:1px solid var(--stroke);background:linear-gradient(135deg,#6af5ff,#74a3ff);color:#091326;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
     button.secondary{background:rgba(255,255,255,.06);color:var(--txt)}
@@ -59,6 +59,10 @@
         <div>
           <label for="seconds">Duration</label>
           <input id="seconds" type="number" min="5" max="60" value="15" />
+        </div>
+        <div>
+          <label for="tempo">Tempo (BPM)</label>
+          <input id="tempo" type="number" min="60" max="180" value="120" />
         </div>
       </div>
       <div class="row">
@@ -116,6 +120,7 @@
         const data = PRESETS[btn.dataset.preset];
         $('genre').value = data.genre;
         $('prompt').value = data.prompt;
+        $('tempo').value = data.tempo;
         $('temperature').value = data.temperature;
         $('topP').value = data.topP;
         $('seconds').value = 15;
@@ -152,7 +157,9 @@
       history.slice().reverse().forEach((item) => {
         const div = document.createElement('div');
         div.className = 'history-item';
-        div.innerHTML = `<strong>${item.genre} • ${item.seconds}s</strong><span>${item.time} • temp ${item.temperature.toFixed(2)} • top-p ${item.topP.toFixed(2)} • ${item.ms}ms</span>`;
+        const header = `${item.genre} • ${item.seconds}s`;
+        const detail = `${item.time} • temp ${item.temperature.toFixed(2)} • top-p ${Number(item.topP ?? 0.9).toFixed(2)} • ${item.ms}ms`;
+        div.innerHTML = `<strong>${header}</strong><span>${detail}</span>`;
         $('history').appendChild(div);
       });
     };
@@ -166,16 +173,17 @@
         const tokenizer = await loader.loadTokenizer();
         const genre = $('genre').value;
         const seconds = Math.max(5, Math.min(60, Number($('seconds').value) || 15));
+        const tempo = Math.max(60, Math.min(180, Number($('tempo').value) || 120));
         const temperature = Number($('temperature').value);
         const topP = Number($('topP').value);
         const text = `${genre}: ${GENRE_DEFINITIONS[genre]}. ${$('prompt').value}`;
-        const ids = tokenizer.encode(`${text} top-p:${topP}`);
+        const ids = tokenizer.encode(text);
         const tokens = engine.encodePromptTokens(ids.join(' '));
 
         const { audio, sampleRate } = await engine.generateMusic({
           promptTokens: tokens,
           durationSec: seconds,
-          tempo: 60 + topP * 90,
+          tempo,
           temperature,
         });
 

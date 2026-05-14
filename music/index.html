@@ -183,10 +183,10 @@
     let lastBlob = null;
 
     Object.keys(GENRE_DEFINITIONS).forEach((genre) => {
-      const opt = document.createElement('option');
-      opt.value = genre;
-      opt.textContent = genre[0].toUpperCase() + genre.slice(1);
-      genreSelect.appendChild(opt);
+      const option = document.createElement('option');
+      option.value = genre;
+      option.textContent = genre.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      genreSelect.appendChild(option);
     });
 
     const sync = (id, suffix = '') => {
@@ -234,12 +234,14 @@
         setBusy(true, 'Encoding prompt...');
         const prompt = promptWithGenre();
         const localTokenIds = tokenizer.encode(prompt);
-        const gpuTokens = engine.encodePromptTokens(`${prompt} ${localTokenIds.join(' ')}`);
+        const tokenSeed = localTokenIds.length ? localTokenIds.join(' ') : prompt;
+        const gpuTokens = engine.encodePromptTokens(tokenSeed);
+        const durationSec = Number($('duration').value);
 
         setBusy(true, 'Generating audio...');
         const out = await engine.generateMusic({
           promptTokens: gpuTokens,
-          durationSec: Number($('duration').value),
+          durationSec,
           tempo: Number($('tempo').value),
           temperature: Number($('creativity').value),
         });
@@ -250,7 +252,7 @@
         audio.src = url;
         audio.style.display = 'block';
         $('downloadBtn').disabled = false;
-        setBusy(false, `Done. ${($('duration').value)}s clip generated at ${out.sampleRate}Hz.`);
+        setBusy(false, `Done. ${durationSec}s clip generated at ${out.sampleRate}Hz.`);
       } catch (error) {
         setBusy(false, `Failed: ${error.message}`);
       }

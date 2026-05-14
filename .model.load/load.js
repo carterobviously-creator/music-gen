@@ -20,6 +20,10 @@ const MODEL_VARIANTS = {
 
 const DB_NAME = 'musicgen-cache-v1';
 const STORE_NAME = 'models';
+// Lightweight multiplier to spread short token-length values into a wider fallback token ID range.
+const FALLBACK_TOKEN_MULTIPLIER = 113;
+const FALLBACK_HASH_INIT = 7;
+const FALLBACK_HASH_MULTIPLIER = 31;
 
 export class MusicModelLoader {
   constructor(options = {}) {
@@ -102,7 +106,13 @@ export class MusicModelLoader {
           .trim()
           .split(/\s+/)
           .filter(Boolean)
-          .map((token, idx) => token.length * 113 + idx),
+          .map((token) => {
+            let hash = FALLBACK_HASH_INIT;
+            for (let i = 0; i < token.length; i += 1) {
+              hash = ((hash * FALLBACK_HASH_MULTIPLIER) + token.charCodeAt(i)) >>> 0;
+            }
+            return hash ^ FALLBACK_TOKEN_MULTIPLIER;
+          }),
       decode: (tokens) => (tokens || []).map((v) => `tok${v}`).join(' '),
       model: meta.model || 'fallback-whitespace-tokenizer',
     });
