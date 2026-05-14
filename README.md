@@ -7,5 +7,5 @@ how to install? :
 make a folder then right click open in termnal
 run : git clone https://github.com/carterobviously-creator/music-gen
 then run : py -m http.server 8000
-then go to this link http://localhost:8080/index.html
+then go to this link http://localhost:8080/music-gen/.workspace-html/work.html
 then you are done 
